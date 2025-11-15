@@ -1,10 +1,12 @@
 .dashboard-sidebar {
   width: 260px;
-  height: calc(100vh - 70px);
+  min-height: calc(100vh - 70px);
+  max-height: calc(100vh - 70px);
   background: linear-gradient(180deg, #0a1929 0%, #112240 100%);
   border-right: 1px solid rgba(0, 212, 255, 0.1);
   position: sticky;
   top: 70px;
+  align-self: flex-start;
   overflow-y: auto;
   overflow-x: hidden;
 

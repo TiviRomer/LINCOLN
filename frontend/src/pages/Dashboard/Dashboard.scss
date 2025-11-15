@@ -47,6 +47,97 @@
         }
       }
 
+      .dashboard-quick-links {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+
+        .quick-link-card {
+          background: var(--card-bg);
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          padding: 1.5rem;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          cursor: pointer;
+          transition: all var(--transition-base);
+          position: relative;
+          overflow: hidden;
+
+          &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary-cyan);
+            opacity: 0;
+            transition: opacity var(--transition-base);
+          }
+
+          &:hover {
+            border-color: var(--primary-cyan);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+
+            &::before {
+              opacity: 1;
+            }
+
+            .quick-link-arrow {
+              transform: translateX(5px);
+            }
+          }
+
+          .quick-link-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 10px;
+            color: var(--primary-cyan);
+            flex-shrink: 0;
+
+            svg {
+              width: 24px;
+              height: 24px;
+            }
+          }
+
+          .quick-link-content {
+            flex: 1;
+
+            h3 {
+              font-size: 16px;
+              font-weight: 600;
+              color: var(--text-primary);
+              margin: 0 0 4px 0;
+            }
+
+            p {
+              font-size: 13px;
+              color: var(--text-secondary);
+              margin: 0;
+            }
+          }
+
+          .quick-link-arrow {
+            color: var(--text-secondary);
+            transition: all var(--transition-base);
+
+            svg {
+              width: 20px;
+              height: 20px;
+            }
+          }
+        }
+      }
+
       .dashboard-placeholders {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
