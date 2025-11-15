@@ -279,12 +279,130 @@ async function populateFirestore() {
     });
     console.log('   ✅ Estadísticas iniciales creadas');
 
+    // ===== INCIDENTES =====
+    console.log('\n🚨 Creando incidentes...');
+    
+    const incidents = [
+      {
+        title: 'Ataque de Ransomware en Servidor Principal',
+        type: 'ransomware',
+        severity: 'critical',
+        status: 'investigating',
+        affectedServers: [serverIds['Servidor Principal'], serverIds['Servidor de Base de Datos']],
+        detectedAt: serverTimestamp(),
+        automatedResponses: [
+          'Aislamiento automático del servidor afectado',
+          'Backup de seguridad activado',
+          'Notificación enviada al equipo de seguridad'
+        ],
+        manualActions: [
+          'Análisis forense iniciado',
+          'Contacto con proveedor de seguridad'
+        ],
+        timeline: [
+          {
+            timestamp: serverTimestamp(),
+            action: 'detected',
+            actor: 'system',
+            description: 'Ransomware detectado en /var/www del servidor principal'
+          },
+          {
+            timestamp: serverTimestamp(),
+            action: 'automated_response',
+            actor: 'system',
+            description: 'Servidor aislado automáticamente de la red'
+          },
+          {
+            timestamp: serverTimestamp(),
+            action: 'investigating',
+            actor: 'admin',
+            description: 'Investigación iniciada por el equipo de seguridad'
+          }
+        ],
+        createdBy: 'system',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      {
+        title: 'Intento de Intrusión Múltiple',
+        type: 'intrusion',
+        severity: 'high',
+        status: 'contained',
+        affectedServers: [serverIds['Servidor de Base de Datos']],
+        detectedAt: serverTimestamp(),
+        resolvedAt: serverTimestamp(),
+        automatedResponses: [
+          'IP bloqueada automáticamente',
+          'Firewall actualizado',
+          'Logs de seguridad generados'
+        ],
+        manualActions: [
+          'Análisis de logs completado',
+          'Reglas de firewall actualizadas'
+        ],
+        timeline: [
+          {
+            timestamp: serverTimestamp(),
+            action: 'detected',
+            actor: 'system',
+            description: 'Múltiples intentos de acceso fallidos desde IP externa'
+          },
+          {
+            timestamp: serverTimestamp(),
+            action: 'contained',
+            actor: 'system',
+            description: 'Amenaza contenida - IP bloqueada'
+          },
+          {
+            timestamp: serverTimestamp(),
+            action: 'resolved',
+            actor: 'admin',
+            description: 'Incidente resuelto - Sistema seguro'
+          }
+        ],
+        createdBy: 'system',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      {
+        title: 'Posible Filtración de Datos',
+        type: 'data_leak',
+        severity: 'critical',
+        status: 'active',
+        affectedServers: [serverIds['Servidor de Archivos']],
+        detectedAt: serverTimestamp(),
+        automatedResponses: [
+          'Transferencia bloqueada',
+          'Conexión externa interrumpida',
+          'Alerta enviada al administrador'
+        ],
+        manualActions: [],
+        timeline: [
+          {
+            timestamp: serverTimestamp(),
+            action: 'detected',
+            actor: 'system',
+            description: 'Transferencia masiva de datos detectada (2.5GB)'
+          }
+        ],
+        createdBy: 'system',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }
+    ];
+
+    for (const incident of incidents) {
+      const docRef = await addDoc(collection(db, 'incidents'), incident);
+      console.log(`   ✅ ${incident.title} - ${docRef.id}`);
+    }
+
     console.log('\n========================================');
     console.log('✅ FIRESTORE POBLADO EXITOSAMENTE');
     console.log('========================================\n');
     console.log('📊 Datos creados:');
     console.log(`   - Servidores: ${servers.length}`);
     console.log(`   - Alertas: ${alerts.length}`);
+    console.log(`   - Incidentes: ${incidents.length}`);
     console.log('   - Configuración del sistema: 1');
     console.log('   - Estadísticas: 1');
     console.log('\n🌐 Verifica los datos en:');

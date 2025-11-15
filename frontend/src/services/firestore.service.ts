@@ -21,7 +21,7 @@ import {
   QueryConstraint,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import { Server, Alert, Threat } from '../types/dashboard';
+import { Server, Alert, Threat, Incident, IncidentStatus, IncidentTimelineEvent } from '../types/dashboard';
 
 // Convertir Timestamp de Firestore a Date
 const timestampToDate = (timestamp: any): Date => {
@@ -295,10 +295,278 @@ export const statsService = {
   },
 };
 
+// ===== INCIDENTS =====
+
+export const incidentsService = {
+  // Obtener todos los incidentes
+  getAll: async (): Promise<Incident[]> => {
+    const incidentsCol = collection(db, 'incidents');
+    const q = query(incidentsCol, orderBy('detectedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        title: data.title,
+        type: data.type,
+        severity: data.severity,
+        status: data.status,
+        affectedServers: data.affectedServers || [],
+        detectedAt: data.detectedAt ? timestampToDate(data.detectedAt) : new Date(),
+        resolvedAt: data.resolvedAt ? timestampToDate(data.resolvedAt) : undefined,
+        automatedResponses: data.automatedResponses || [],
+        manualActions: data.manualActions || [],
+        timeline: (data.timeline || []).map((event: any) => ({
+          timestamp: timestampToDate(event.timestamp),
+          action: event.action,
+          actor: event.actor,
+          description: event.description,
+        })),
+      };
+    });
+  },
+
+  // Listener en tiempo real para incidentes
+  onIncidentsChange: (
+    callback: (incidents: Incident[]) => void,
+    onError?: (error: Error) => void
+  ) => {
+    const incidentsCol = collection(db, 'incidents');
+    const q = query(incidentsCol, orderBy('detectedAt', 'desc'));
+    
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        try {
+          const incidents = snapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              title: data.title || 'Sin título',
+              type: data.type || 'anomalous_behavior',
+              severity: data.severity || 'medium',
+              status: data.status || 'active',
+              affectedServers: data.affectedServers || [],
+              detectedAt: data.detectedAt ? timestampToDate(data.detectedAt) : new Date(),
+              resolvedAt: data.resolvedAt ? timestampToDate(data.resolvedAt) : undefined,
+              automatedResponses: data.automatedResponses || [],
+              manualActions: data.manualActions || [],
+              timeline: (data.timeline || []).map((event: any) => ({
+                timestamp: event.timestamp ? timestampToDate(event.timestamp) : new Date(),
+                action: event.action || 'unknown',
+                actor: event.actor || 'system',
+                description: event.description || '',
+              })),
+            };
+          });
+          callback(incidents);
+        } catch (error) {
+          console.error('Error procesando incidentes:', error);
+          if (onError) {
+            onError(error instanceof Error ? error : new Error(String(error)));
+          } else {
+            // Si no hay callback de error, al menos devolver array vacío
+            callback([]);
+          }
+        }
+      },
+      (error) => {
+        console.error('Error en listener de incidentes:', error);
+        if (onError) {
+          onError(error instanceof Error ? error : new Error(String(error)));
+        } else {
+          // Si no hay callback de error, al menos devolver array vacío
+          callback([]);
+        }
+      }
+    );
+  },
+
+  // Obtener incidente por ID
+  getById: async (id: string): Promise<Incident | null> => {
+    const incidentDoc = await getDoc(doc(db, 'incidents', id));
+    if (!incidentDoc.exists()) return null;
+
+    const data = incidentDoc.data();
+    return {
+      id: incidentDoc.id,
+      title: data.title,
+      type: data.type,
+      severity: data.severity,
+      status: data.status,
+      affectedServers: data.affectedServers || [],
+      detectedAt: data.detectedAt ? timestampToDate(data.detectedAt) : new Date(),
+      resolvedAt: data.resolvedAt ? timestampToDate(data.resolvedAt) : undefined,
+      automatedResponses: data.automatedResponses || [],
+      manualActions: data.manualActions || [],
+      timeline: (data.timeline || []).map((event: any) => ({
+        timestamp: timestampToDate(event.timestamp),
+        action: event.action,
+        actor: event.actor,
+        description: event.description,
+      })),
+    };
+  },
+
+  // Crear nuevo incidente
+  create: async (incidentData: Omit<Incident, 'id' | 'detectedAt' | 'resolvedAt' | 'timeline'> & {
+    detectedAt?: Date;
+    resolvedAt?: Date;
+    timeline?: IncidentTimelineEvent[];
+  }): Promise<string> => {
+    const incidentsCol = collection(db, 'incidents');
+    const newIncident: any = {
+      ...incidentData,
+      detectedAt: incidentData.detectedAt ? Timestamp.fromDate(incidentData.detectedAt) : serverTimestamp(),
+      resolvedAt: incidentData.resolvedAt ? Timestamp.fromDate(incidentData.resolvedAt) : null,
+      timeline: (incidentData.timeline || []).map((event) => ({
+        ...event,
+        timestamp: event.timestamp instanceof Date ? Timestamp.fromDate(event.timestamp) : serverTimestamp(),
+      })),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    
+    // Remover campos undefined
+    Object.keys(newIncident).forEach(key => {
+      if (newIncident[key] === undefined) {
+        delete newIncident[key];
+      }
+    });
+    
+    const docRef = await addDoc(incidentsCol, newIncident);
+    return docRef.id;
+  },
+
+  // Actualizar estado de incidente
+  updateStatus: async (incidentId: string, status: IncidentStatus, actor: string, description?: string) => {
+    const incidentRef = doc(db, 'incidents', incidentId);
+    const incidentDoc = await getDoc(incidentRef);
+    
+    if (!incidentDoc.exists()) {
+      throw new Error('Incident not found');
+    }
+
+    const currentData = incidentDoc.data();
+    const currentTimeline = currentData.timeline || [];
+    
+    const newTimelineEvent = {
+      timestamp: serverTimestamp(),
+      action: status,
+      actor: actor,
+      description: description || `Estado cambiado a ${status}`,
+    };
+
+    const updateData: any = {
+      status,
+      updatedAt: serverTimestamp(),
+      timeline: [...currentTimeline, newTimelineEvent],
+    };
+
+    if (status === 'resolved') {
+      updateData.resolvedAt = serverTimestamp();
+    }
+
+    await updateDoc(incidentRef, updateData);
+  },
+
+  // Agregar acción manual
+  addManualAction: async (incidentId: string, action: string, actor: string) => {
+    const incidentRef = doc(db, 'incidents', incidentId);
+    const incidentDoc = await getDoc(incidentRef);
+    
+    if (!incidentDoc.exists()) {
+      throw new Error('Incident not found');
+    }
+
+    const currentData = incidentDoc.data();
+    const currentManualActions = currentData.manualActions || [];
+    const currentTimeline = currentData.timeline || [];
+
+    const newTimelineEvent = {
+      timestamp: serverTimestamp(),
+      action: 'manual_action',
+      actor: actor,
+      description: action,
+    };
+
+    await updateDoc(incidentRef, {
+      manualActions: [...currentManualActions, action],
+      timeline: [...currentTimeline, newTimelineEvent],
+      updatedAt: serverTimestamp(),
+    });
+  },
+
+  // Agregar respuesta automatizada
+  addAutomatedResponse: async (incidentId: string, response: string) => {
+    const incidentRef = doc(db, 'incidents', incidentId);
+    const incidentDoc = await getDoc(incidentRef);
+    
+    if (!incidentDoc.exists()) {
+      throw new Error('Incident not found');
+    }
+
+    const currentData = incidentDoc.data();
+    const currentAutomatedResponses = currentData.automatedResponses || [];
+    const currentTimeline = currentData.timeline || [];
+
+    const newTimelineEvent = {
+      timestamp: serverTimestamp(),
+      action: 'automated_response',
+      actor: 'system',
+      description: response,
+    };
+
+    await updateDoc(incidentRef, {
+      automatedResponses: [...currentAutomatedResponses, response],
+      timeline: [...currentTimeline, newTimelineEvent],
+      updatedAt: serverTimestamp(),
+    });
+  },
+
+  // Crear incidente desde alerta
+  createFromAlert: async (alertId: string, alertData: Alert, actor: string): Promise<string> => {
+    const incidentsCol = collection(db, 'incidents');
+    
+    const newIncident: any = {
+      title: `Incidente: ${alertData.title}`,
+      type: alertData.type,
+      severity: alertData.severity,
+      status: 'active' as IncidentStatus,
+      affectedServers: [alertData.serverId],
+      detectedAt: Timestamp.fromDate(alertData.timestamp),
+      automatedResponses: [],
+      manualActions: [],
+      timeline: [
+        {
+          timestamp: serverTimestamp(),
+          action: 'created',
+          actor: actor,
+          description: `Incidente creado desde alerta: ${alertData.title}`,
+        },
+        {
+          timestamp: Timestamp.fromDate(alertData.timestamp),
+          action: 'detected',
+          actor: 'system',
+          description: alertData.description,
+        },
+      ],
+      createdBy: actor,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    const docRef = await addDoc(incidentsCol, newIncident);
+    return docRef.id;
+  },
+};
+
 export default {
   servers: serversService,
   alerts: alertsService,
   threats: threatsService,
   stats: statsService,
+  incidents: incidentsService,
 };
 

@@ -133,9 +133,18 @@ const Dashboard: React.FC = () => {
         console.error('❌ Error al reconocer alerta:', error);
       }
     },
-    investigate: (id: string) => {
-      console.log('🔍 Investigando alerta:', id);
-      navigate(`/incidents?alert=${id}`);
+    investigate: async (id: string) => {
+      try {
+        const alert = alerts.find((a) => a.id === id);
+        if (alert) {
+          const incidentId = await firestoreService.incidents.createFromAlert(id, alert, user.name);
+          console.log('✅ Incidente creado desde alerta:', incidentId);
+          navigate(`/incidents?incident=${incidentId}`);
+        }
+      } catch (error) {
+        console.error('❌ Error al crear incidente desde alerta:', error);
+        alert('Error al crear incidente. Por favor, intenta nuevamente.');
+      }
     },
     resolve: async (id: string) => {
       try {
@@ -248,27 +257,57 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Placeholder sections for future implementation */}
-            <div className="dashboard-placeholders">
-              <div className="placeholder-section">
-                <h2>Detección de Ransomware</h2>
-                <p>Sección en desarrollo - Mostrará detecciones activas de ransomware</p>
+            {/* Quick Links Section */}
+            <div className="dashboard-quick-links">
+              <div className="quick-link-card" onClick={() => navigate('/incidents')}>
+                <div className="quick-link-icon">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div className="quick-link-content">
+                  <h3>Centro de Incidentes</h3>
+                  <p>Ver y gestionar todos los incidentes de seguridad</p>
+                </div>
+                <div className="quick-link-arrow">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
               </div>
-              <div className="placeholder-section">
-                <h2>Prevención de Filtración de Datos</h2>
-                <p>Sección en desarrollo - Mostrará intentos de filtración bloqueados</p>
+              <div className="quick-link-card" onClick={() => navigate('/threats')}>
+                <div className="quick-link-icon">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div className="quick-link-content">
+                  <h3>Threats & Alerts</h3>
+                  <p>Monitoreo en tiempo real de amenazas y alertas</p>
+                </div>
+                <div className="quick-link-arrow">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
               </div>
-              <div className="placeholder-section">
-                <h2>Centro de Respuesta a Incidentes</h2>
-                <p>Sección en desarrollo - Mostrará incidentes activos y su progreso</p>
-              </div>
-              <div className="placeholder-section">
-                <h2>Métricas de Seguridad</h2>
-                <p>Sección en desarrollo - Mostrará gráficos y visualizaciones de tendencias</p>
-              </div>
-              <div className="placeholder-section">
-                <h2>Cumplimiento y Reportes</h2>
-                <p>Sección en desarrollo - Mostrará estado de cumplimiento y acceso a reportes</p>
+              <div className="quick-link-card" onClick={() => navigate('/reports')}>
+                <div className="quick-link-icon">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div className="quick-link-content">
+                  <h3>Reportes</h3>
+                  <p>Genera y descarga reportes detallados</p>
+                </div>
+                <div className="quick-link-arrow">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
