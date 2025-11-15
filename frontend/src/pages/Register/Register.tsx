@@ -2,6 +2,7 @@ import React, { useState, FormEvent, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../../components/Logo/Logo';
 import { validateEmail, validatePassword } from '../../utils/validation';
+import apiService from '../../services/api';
 import './Register.scss';
 
 type PasswordStrength = 'weak' | 'medium' | 'strong' | '';
@@ -136,39 +137,30 @@ const Register: React.FC = () => {
 
     // API call
     try {
-      // TODO: Replace with actual API call
-      // Example API call structure:
-      // const response = await fetch('/api/auth/register', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     name: formData.name,
-      //     email: formData.email,
-      //     password: formData.password,
-      //   }),
-      // });
-      // const data = await response.json();
-      // if (!response.ok) throw new Error(data.message || 'Error al registrar');
-      
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      
-      console.log('Registration attempt:', {
-        name: formData.name,
+      const response = await apiService.register({
+        name: formData.name.trim(),
         email: formData.email,
+        password: formData.password,
       });
-      
-      // Show success message
-      setSuccessMessage('¡Cuenta creada exitosamente! Redirigiendo...');
-      
-      // Navigate to login after a short delay
-      setTimeout(() => {
-        navigate('/login', { 
-          state: { 
-            message: 'Cuenta creada exitosamente. Por favor, inicia sesión.' 
-          } 
+
+      if (response.success) {
+        // Show success message
+        setSuccessMessage('¡Cuenta creada exitosamente! Redirigiendo...');
+        
+        // Navigate to login after a short delay
+        setTimeout(() => {
+          navigate('/login', { 
+            state: { 
+              message: 'Cuenta creada exitosamente. Por favor, inicia sesión.' 
+            } 
+          });
+        }, 1500);
+      } else {
+        setErrors({
+          ...newErrors,
+          general: response.message || 'Error al registrar. Por favor, intenta nuevamente.',
         });
-      }, 1500);
+      }
     } catch (error) {
       setErrors({
         ...newErrors,

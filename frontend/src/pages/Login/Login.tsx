@@ -1,7 +1,8 @@
 import React, { useState, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../../components/Logo/Logo';
-import { validateEmail, validatePassword } from '../../utils/validation';
+import { validateEmail } from '../../utils/validation';
+import apiService from '../../services/api';
 import './Login.scss';
 
 const Login: React.FC = () => {
@@ -64,20 +65,28 @@ const Login: React.FC = () => {
       return;
     }
 
-    // Simulate API call
+    // API call
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      
-      // For demo purposes, accept any email/password
-      console.log('Login attempt:', formData);
-      
-      // Navigate to dashboard (or wherever after login)
-      navigate('/dashboard');
+      const response = await apiService.login({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (response.success) {
+        // Navigate to dashboard on successful login
+        navigate('/dashboard');
+      } else {
+        setErrors({
+          ...newErrors,
+          general: response.message || 'Error al iniciar sesión. Por favor, intenta nuevamente.',
+        });
+      }
     } catch (error) {
       setErrors({
         ...newErrors,
-        general: 'Error al iniciar sesión. Por favor, intenta nuevamente.',
+        general: error instanceof Error 
+          ? error.message 
+          : 'Error al iniciar sesión. Por favor, intenta nuevamente.',
       });
     } finally {
       setIsLoading(false);
