@@ -1,8 +1,8 @@
-import * as admin from 'firebase-admin';
+import * as admin from "firebase-admin";
 
-export type AlertStatus = 'open' | 'acknowledged' | 'in_progress' | 'resolved' | 'closed';
-export type AlertSeverity = 'low' | 'medium' | 'high' | 'critical';
-export type AlertType = 'intrusion' | 'malware' | 'policy_violation' | 'vulnerability' | 'other';
+export type AlertStatus = "open" | "acknowledged" | "in_progress" | "resolved" | "closed";
+export type AlertSeverity = "low" | "medium" | "high" | "critical";
+export type AlertType = "intrusion" | "malware" | "policy_violation" | "vulnerability" | "other";
 
 export interface Alert {
   id: string;
@@ -24,7 +24,7 @@ export interface Alert {
 }
 
 // Tipo para la creación de alertas (sin campos opcionales)
-export type CreateAlert = Omit<Alert, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'assignedTo' | 'closedAt'> & {
+export type CreateAlert = Omit<Alert, "id" | "createdAt" | "updatedAt" | "status" | "assignedTo" | "closedAt"> & {
   status: AlertStatus;
   assignedTo: string | null;
   createdAt: admin.firestore.FieldValue;
@@ -34,13 +34,13 @@ export type CreateAlert = Omit<Alert, 'id' | 'createdAt' | 'updatedAt' | 'status
 
 export const alertConverter = {
   toFirestore: (alert: Partial<Alert>) => {
-    const data: any = { ...alert };
+    const data: any = {...alert};
     // No incluir el ID en los datos del documento
     delete data.id;
     return data;
   },
   fromFirestore: (
-    snapshot: admin.firestore.QueryDocumentSnapshot
+    snapshot: admin.firestore.QueryDocumentSnapshot,
   ): Alert => {
     const data = snapshot.data();
     return {
@@ -59,7 +59,7 @@ export const alertConverter = {
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
       closedAt: data.closedAt,
-      resolution: data.resolution
+      resolution: data.resolution,
     };
-  }
+  },
 };

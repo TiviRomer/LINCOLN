@@ -24,8 +24,8 @@ exports.serverConverter = {
             lastSeen: data.lastSeen,
             description: data.description,
             createdAt: data.createdAt,
-            updatedAt: data.updatedAt
+            updatedAt: data.updatedAt,
         };
-    }
+    },
 };
 //# sourceMappingURL=server.model.js.map

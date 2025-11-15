@@ -51,10 +51,32 @@ npm run dev
 Una vez iniciado, tendrás acceso a:
 
 - **Frontend**: http://localhost:3000
-- **Firebase UI**: http://localhost:4000 (Panel de emuladores)
+- **Firebase UI**: http://localhost:4001 (Panel de emuladores)
 - **Auth Emulator**: http://localhost:9099
 - **Firestore Emulator**: http://localhost:8082
 - **Functions Emulator**: http://localhost:5001
+
+## 🔍 Configurar Sistema de Detección (NUEVO)
+
+Después de iniciar el sistema, configura las detecciones:
+
+```powershell
+# 1. Configurar detección
+node scripts/setup-detection-config.js
+
+# 2. Poblar datos de prueba (si no lo has hecho)
+node scripts/populate-firestore.js
+
+# 3. Poblar métricas de servidores (IMPORTANTE para detecciones)
+node scripts/populate-server-metrics.js
+
+# 4. Probar el sistema de detección
+node scripts/test-detection.js
+```
+
+Las detecciones se ejecutarán automáticamente cada minuto y crearán alertas cuando detecten amenazas.
+
+📖 **Ver guía completa**: `DETECCION_SETUP.md`
 
 ## 🧪 Probar el Sistema
 

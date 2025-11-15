@@ -1,4 +1,4 @@
-import * as admin from 'firebase-admin';
+import * as admin from "firebase-admin";
 
 export interface Server {
   id: string;
@@ -7,10 +7,10 @@ export interface Server {
   hostname: string;
   os: string;
   osVersion: string;
-  environment: 'production' | 'staging' | 'development' | 'testing';
+  environment: "production" | "staging" | "development" | "testing";
   department: string;
   isActive: boolean;
-  status: 'online' | 'offline' | 'maintenance';
+  status: "online" | "offline" | "maintenance";
   lastSeen?: admin.firestore.Timestamp | admin.firestore.FieldValue;
   description?: string;
   createdAt: admin.firestore.Timestamp | admin.firestore.FieldValue;
@@ -18,22 +18,22 @@ export interface Server {
 }
 
 // Tipo para la creación de servidores
-export type CreateServer = Omit<Server, 'id' | 'createdAt' | 'updatedAt' | 'isActive' | 'status'> & {
+export type CreateServer = Omit<Server, "id" | "createdAt" | "updatedAt" | "isActive" | "status"> & {
   isActive: boolean;
-  status: 'online' | 'offline' | 'maintenance';
+  status: "online" | "offline" | "maintenance";
   createdAt: admin.firestore.FieldValue;
   updatedAt: admin.firestore.FieldValue;
 };
 
 export const serverConverter = {
   toFirestore: (server: Partial<Server>) => {
-    const data: any = { ...server };
+    const data: any = {...server};
     // No incluir el ID en los datos del documento
     delete data.id;
     return data;
   },
   fromFirestore: (
-    snapshot: admin.firestore.QueryDocumentSnapshot
+    snapshot: admin.firestore.QueryDocumentSnapshot,
   ): Server => {
     const data = snapshot.data();
     return {
@@ -50,7 +50,7 @@ export const serverConverter = {
       lastSeen: data.lastSeen,
       description: data.description,
       createdAt: data.createdAt,
-      updatedAt: data.updatedAt
+      updatedAt: data.updatedAt,
     };
-  }
+  },
 };

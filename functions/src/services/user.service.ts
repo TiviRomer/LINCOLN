@@ -1,28 +1,28 @@
-import * as admin from 'firebase-admin';
-import { User, userConverter, CreateUser } from '../models/user.model';
-import { RoleService } from './role.service';
-import { DepartmentService } from './department.service';
+import * as admin from "firebase-admin";
+import {User, userConverter, CreateUser} from "../models/user.model";
+import {RoleService} from "./role.service";
+import {DepartmentService} from "./department.service";
 
 export class UserService {
-  private static readonly collection = 'users';
+  private static readonly collection = "users";
 
-  static async createUser(userData: Omit<CreateUser, 'createdAt' | 'updatedAt' | 'isActive'>): Promise<User> {
+  static async createUser(userData: Omit<CreateUser, "createdAt" | "updatedAt" | "isActive">): Promise<User> {
     // Validar que el rol existe
     const role = await RoleService.getRole(userData.role);
     if (!role) {
-      throw new Error('El rol especificado no existe');
+      throw new Error("El rol especificado no existe");
     }
 
     // Validar que el departamento existe
     const department = await DepartmentService.getDepartment(userData.department);
     if (!department) {
-      throw new Error('El departamento especificado no existe');
+      throw new Error("El departamento especificado no existe");
     }
 
     // Verificar si el email ya está en uso
     const existingUser = await this.getUserByEmail(userData.email);
     if (existingUser) {
-      throw new Error('El correo electrónico ya está en uso');
+      throw new Error("El correo electrónico ya está en uso");
     }
 
     const now = admin.firestore.FieldValue.serverTimestamp();
@@ -31,7 +31,7 @@ export class UserService {
       email: userData.email.toLowerCase(),
       isActive: true,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     };
 
     const userRef = await admin.firestore()
@@ -40,11 +40,12 @@ export class UserService {
       .add(newUser);
 
     const userDoc = await userRef.withConverter(userConverter).get();
-    const user = userDoc.data();
-    if (!user) {
-      throw new Error('Error al crear el usuario');
+    const userResult = userDoc.data();
+    if (!userResult) {
+      throw new Error("Error al crear el usuario");
     }
-    return user;
+    // El converter ya incluye el id
+    return userResult as User;
   }
 
   static async getUser(userId: string): Promise<User | null> {
@@ -54,18 +55,20 @@ export class UserService {
       .withConverter(userConverter)
       .get();
 
-    return userDoc.data() || null;
+    const userResult = userDoc.data();
+    // El converter ya incluye el id
+    return (userResult as User | undefined) || null;
   }
 
   static async updateUser(
-    userId: string, 
-    data: Partial<Omit<User, 'id' | 'createdAt'>>
+    userId: string,
+    data: Partial<Omit<User, "id" | "createdAt">>,
   ): Promise<void> {
     if (data.email) {
       // Verificar si el nuevo email ya está en uso
       const existingUser = await this.getUserByEmail(data.email);
       if (existingUser && existingUser.id !== userId) {
-        throw new Error('El correo electrónico ya está en uso');
+        throw new Error("El correo electrónico ya está en uso");
       }
       data.email = data.email.toLowerCase();
     }
@@ -74,7 +77,7 @@ export class UserService {
       // Validar que el rol existe
       const role = await RoleService.getRole(data.role);
       if (!role) {
-        throw new Error('El rol especificado no existe');
+        throw new Error("El rol especificado no existe");
       }
     }
 
@@ -82,7 +85,7 @@ export class UserService {
       // Validar que el departamento existe
       const department = await DepartmentService.getDepartment(data.department);
       if (!department) {
-        throw new Error('El departamento especificado no existe');
+        throw new Error("El departamento especificado no existe");
       }
     }
 
@@ -92,32 +95,32 @@ export class UserService {
       .withConverter(userConverter)
       .set({
         ...data,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
   }
 
   static async deactivateUser(userId: string): Promise<void> {
     // Verificar si el usuario tiene alertas asignadas
-    const AlertService = (await import('./alert.service')).AlertService;
-    const userAlerts = await AlertService.listAlerts({ 
+    const AlertService = (await import("./alert.service")).AlertService;
+    const userAlerts = await AlertService.listAlerts({
       assignedTo: userId,
-      status: 'open'
+      status: "open",
     });
 
     if (userAlerts.length > 0) {
-      throw new Error('No se puede desactivar el usuario porque tiene alertas asignadas');
+      throw new Error("No se puede desactivar el usuario porque tiene alertas asignadas");
     }
 
-    await this.updateUser(userId, { 
+    await this.updateUser(userId, {
       isActive: false,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
   }
 
   static async activateUser(userId: string): Promise<void> {
-    await this.updateUser(userId, { 
+    await this.updateUser(userId, {
       isActive: true,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
   }
 
@@ -126,21 +129,22 @@ export class UserService {
       .collection(this.collection)
       .doc(userId)
       .update({
-        lastLogin: admin.firestore.FieldValue.serverTimestamp()
+        lastLogin: admin.firestore.FieldValue.serverTimestamp(),
       });
   }
 
   static async getUserByEmail(email: string): Promise<User | null> {
     const snapshot = await admin.firestore()
       .collection(this.collection)
-      .where('email', '==', email.toLowerCase())
+      .where("email", "==", email.toLowerCase())
       .withConverter(userConverter)
       .limit(1)
       .get();
 
     if (snapshot.empty) return null;
     const doc = snapshot.docs[0];
-    return doc.data();
+    const userResult = doc.data();
+    return (userResult as User | undefined) || null;
   }
 
   static async listUsers(filters: {
@@ -155,30 +159,30 @@ export class UserService {
       .withConverter(userConverter);
 
     if (filters.role) {
-      query = query.where('role', '==', filters.role);
+      query = query.where("role", "==", filters.role);
     }
     if (filters.department) {
-      query = query.where('department', '==', filters.department);
+      query = query.where("department", "==", filters.department);
     }
     if (filters.isActive !== undefined) {
-      query = query.where('isActive', '==', filters.isActive);
+      query = query.where("isActive", "==", filters.isActive);
     }
     if (filters.limit) {
       query = query.limit(filters.limit);
     }
 
     // Ordenar por nombre
-    query = query.orderBy('displayName', 'asc');
+    query = query.orderBy("displayName", "asc");
 
     const snapshot = await query.get();
-    let users = snapshot.docs.map(doc => doc.data() as User);
+    let users = snapshot.docs.map((doc) => doc.data() as User);
 
     // Búsqueda por texto (si se proporciona)
     if (filters.searchTerm) {
       const searchTerm = filters.searchTerm.toLowerCase();
-      users = users.filter(user => 
+      users = users.filter((user) =>
         user.displayName.toLowerCase().includes(searchTerm) ||
-        user.email.toLowerCase().includes(searchTerm)
+        user.email.toLowerCase().includes(searchTerm),
       );
     }
 
@@ -192,7 +196,7 @@ export class UserService {
     return this.listUsers({
       department: departmentId,
       isActive: options.activeOnly,
-      limit: options.limit
+      limit: options.limit,
     });
   }
 
@@ -203,7 +207,7 @@ export class UserService {
     return this.listUsers({
       role: roleId,
       isActive: options.activeOnly,
-      limit: options.limit
+      limit: options.limit,
     });
   }
 
@@ -217,37 +221,37 @@ export class UserService {
 
     const [role, department] = await Promise.all([
       RoleService.getRole(user.role),
-      DepartmentService.getDepartment(user.department)
+      DepartmentService.getDepartment(user.department),
     ]);
 
     if (!role || !department) {
-      throw new Error('No se pudo cargar la información completa del usuario');
+      throw new Error("No se pudo cargar la información completa del usuario");
     }
 
-    return { user, role, department };
+    return {user, role, department};
   }
 
   static async updateUserRole(userId: string, newRoleId: string): Promise<void> {
     const role = await RoleService.getRole(newRoleId);
     if (!role) {
-      throw new Error('El rol especificado no existe');
+      throw new Error("El rol especificado no existe");
     }
 
-    await this.updateUser(userId, { 
+    await this.updateUser(userId, {
       role: newRoleId,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
   }
 
   static async updateUserDepartment(userId: string, newDepartmentId: string): Promise<void> {
     const department = await DepartmentService.getDepartment(newDepartmentId);
     if (!department) {
-      throw new Error('El departamento especificado no existe');
+      throw new Error("El departamento especificado no existe");
     }
 
-    await this.updateUser(userId, { 
+    await this.updateUser(userId, {
       department: newDepartmentId,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
   }
 
@@ -258,7 +262,7 @@ export class UserService {
     return this.listUsers({
       searchTerm,
       isActive: options.activeOnly,
-      limit: options.limit
+      limit: options.limit,
     });
   }
 
@@ -271,13 +275,13 @@ export class UserService {
       .collection(this.collection);
 
     if (filters.role) {
-      query = query.where('role', '==', filters.role);
+      query = query.where("role", "==", filters.role);
     }
     if (filters.department) {
-      query = query.where('department', '==', filters.department);
+      query = query.where("department", "==", filters.department);
     }
     if (filters.isActive !== undefined) {
-      query = query.where('isActive', '==', filters.isActive);
+      query = query.where("isActive", "==", filters.isActive);
     }
 
     const snapshot = await query.count().get();
@@ -289,7 +293,7 @@ export class UserService {
     return !user || (excludeUserId ? user.id !== excludeUserId : false);
   }
 
-  static async bulkUpdateUsers(userIds: string[], updates: Partial<Omit<User, 'id' | 'createdAt' | 'updatedAt'>>): Promise<void> {
+  static async bulkUpdateUsers(userIds: string[], updates: Partial<Omit<User, "id" | "createdAt" | "updatedAt">>): Promise<void> {
     const batch = admin.firestore().batch();
     const usersRef = admin.firestore().collection(this.collection);
     const now = admin.firestore.FieldValue.serverTimestamp();
@@ -298,7 +302,7 @@ export class UserService {
     if (updates.role) {
       const role = await RoleService.getRole(updates.role);
       if (!role) {
-        throw new Error('El rol especificado no existe');
+        throw new Error("El rol especificado no existe");
       }
     }
 
@@ -306,7 +310,7 @@ export class UserService {
     if (updates.department) {
       const department = await DepartmentService.getDepartment(updates.department);
       if (!department) {
-        throw new Error('El departamento especificado no existe');
+        throw new Error("El departamento especificado no existe");
       }
     }
 
@@ -315,7 +319,7 @@ export class UserService {
       const userRef = usersRef.doc(userId);
       batch.update(userRef, {
         ...updates,
-        updatedAt: now
+        updatedAt: now,
       });
     }
 

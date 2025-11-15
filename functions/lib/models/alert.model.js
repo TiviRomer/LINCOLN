@@ -26,8 +26,8 @@ exports.alertConverter = {
             createdAt: data.createdAt,
             updatedAt: data.updatedAt,
             closedAt: data.closedAt,
-            resolution: data.resolution
+            resolution: data.resolution,
         };
-    }
+    },
 };
 //# sourceMappingURL=alert.model.js.map

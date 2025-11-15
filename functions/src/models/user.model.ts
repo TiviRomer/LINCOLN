@@ -1,4 +1,4 @@
-import * as admin from 'firebase-admin';
+import * as admin from "firebase-admin";
 
 export interface User {
   id: string;
@@ -14,20 +14,20 @@ export interface User {
 }
 
 // Tipo para la creación de usuarios (sin campos opcionales)
-export type CreateUser = Omit<User, 'id' | 'createdAt' | 'updatedAt'> & {
+export type CreateUser = Omit<User, "id" | "createdAt" | "updatedAt"> & {
   createdAt: admin.firestore.FieldValue;
   updatedAt: admin.firestore.FieldValue;
 };
 
 export const userConverter = {
   toFirestore: (user: Partial<User>) => {
-    const data: any = { ...user };
+    const data: any = {...user};
     // No incluir el ID en los datos del documento
     delete data.id;
     return data;
   },
   fromFirestore: (
-    snapshot: admin.firestore.QueryDocumentSnapshot
+    snapshot: admin.firestore.QueryDocumentSnapshot,
   ): User => {
     const data = snapshot.data();
     return {
@@ -40,7 +40,7 @@ export const userConverter = {
       isActive: data.isActive,
       lastLogin: data.lastLogin,
       createdAt: data.createdAt,
-      updatedAt: data.updatedAt
+      updatedAt: data.updatedAt,
     };
-  }
+  },
 };

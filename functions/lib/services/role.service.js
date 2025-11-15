@@ -12,11 +12,12 @@ class RoleService {
             .withConverter(role_model_1.roleConverter)
             .add(newRole);
         const roleDoc = await roleRef.withConverter(role_model_1.roleConverter).get();
-        const role = roleDoc.data();
-        if (!role) {
-            throw new Error('Error al crear el rol');
+        const roleResult = roleDoc.data();
+        if (!roleResult) {
+            throw new Error("Error al crear el rol");
         }
-        return role;
+        // El converter ya incluye el id
+        return roleResult;
     }
     static async getRole(roleId) {
         const roleDoc = await admin.firestore()
@@ -24,12 +25,14 @@ class RoleService {
             .doc(roleId)
             .withConverter(role_model_1.roleConverter)
             .get();
-        return roleDoc.data() || null;
+        const roleResult = roleDoc.data();
+        // El converter ya incluye el id
+        return roleResult || null;
     }
     static async getRoleByName(name) {
         const snapshot = await admin.firestore()
             .collection(this.collection)
-            .where('name', '==', name)
+            .where("name", "==", name)
             .withConverter(role_model_1.roleConverter)
             .limit(1)
             .get();
@@ -41,7 +44,7 @@ class RoleService {
         // Evitar que se modifiquen roles del sistema
         const role = await this.getRole(roleId);
         if (role === null || role === void 0 ? void 0 : role.isSystem) {
-            throw new Error('No se pueden modificar roles del sistema');
+            throw new Error("No se pueden modificar roles del sistema");
         }
         await admin.firestore()
             .collection(this.collection)
@@ -53,19 +56,19 @@ class RoleService {
         // Verificar si el rol es un rol del sistema
         const role = await this.getRole(roleId);
         if (!role) {
-            throw new Error('Rol no encontrado');
+            throw new Error("Rol no encontrado");
         }
         if (role.isSystem) {
-            throw new Error('No se pueden eliminar roles del sistema');
+            throw new Error("No se pueden eliminar roles del sistema");
         }
         // Verificar si hay usuarios con este rol
         const usersWithRole = await admin.firestore()
-            .collection('users')
-            .where('role', '==', roleId)
+            .collection("users")
+            .where("role", "==", roleId)
             .limit(1)
             .get();
         if (!usersWithRole.empty) {
-            throw new Error('No se puede eliminar el rol porque hay usuarios asignados a él');
+            throw new Error("No se puede eliminar el rol porque hay usuarios asignados a él");
         }
         await admin.firestore()
             .collection(this.collection)
@@ -77,28 +80,28 @@ class RoleService {
             .collection(this.collection)
             .withConverter(role_model_1.roleConverter);
         if (filters.isSystem !== undefined) {
-            query = query.where('isSystem', '==', filters.isSystem);
+            query = query.where("isSystem", "==", filters.isSystem);
         }
         if (filters.limit) {
             query = query.limit(filters.limit);
         }
         const snapshot = await query.get();
-        return snapshot.docs.map(doc => doc.data());
+        return snapshot.docs.map((doc) => doc.data());
     }
     static async addPermission(roleId, permission) {
         const role = await this.getRole(roleId);
         if (!role) {
-            throw new Error('Rol no encontrado');
+            throw new Error("Rol no encontrado");
         }
-        const existingPermissionIndex = role.permissions.findIndex(p => p.resource === permission.resource);
+        const existingPermissionIndex = role.permissions.findIndex((p) => p.resource === permission.resource);
         const updatedPermissions = [...role.permissions];
         if (existingPermissionIndex >= 0) {
             // Actualizar permisos existentes para el recurso
             const existingActions = new Set(updatedPermissions[existingPermissionIndex].actions);
-            permission.actions.forEach(action => existingActions.add(action));
+            permission.actions.forEach((action) => existingActions.add(action));
             updatedPermissions[existingPermissionIndex] = {
                 resource: permission.resource,
-                actions: Array.from(existingActions)
+                actions: Array.from(existingActions),
             };
         }
         else {
@@ -107,32 +110,32 @@ class RoleService {
         }
         await this.updateRole(roleId, {
             permissions: updatedPermissions,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
     }
     static async removePermission(roleId, resource, action) {
         const role = await this.getRole(roleId);
         if (!role) {
-            throw new Error('Rol no encontrado');
+            throw new Error("Rol no encontrado");
         }
         let updatedPermissions;
         if (!action) {
             // Eliminar todos los permisos para el recurso
-            updatedPermissions = role.permissions.filter(p => p.resource !== resource);
+            updatedPermissions = role.permissions.filter((p) => p.resource !== resource);
         }
         else {
             // Eliminar acción específica del recurso
             updatedPermissions = role.permissions
-                .map(p => {
+                .map((p) => {
                 if (p.resource === resource) {
                     return {
                         resource,
-                        actions: p.actions.filter(a => a !== action)
+                        actions: p.actions.filter((a) => a !== action),
                     };
                 }
                 return p;
             })
-                .filter(p => p.actions.length > 0); // Eliminar recursos sin acciones
+                .filter((p) => p.actions.length > 0); // Eliminar recursos sin acciones
         }
         await this.updateRole(roleId, { permissions: updatedPermissions });
     }
@@ -140,7 +143,7 @@ class RoleService {
         const role = await this.getRole(roleId);
         if (!role)
             return false;
-        const permission = role.permissions.find(p => p.resource === resource);
+        const permission = role.permissions.find((p) => p.resource === resource);
         if (!permission)
             return false;
         return permission.actions.includes(action);
@@ -153,5 +156,5 @@ class RoleService {
     }
 }
 exports.RoleService = RoleService;
-RoleService.collection = 'roles';
+RoleService.collection = "roles";
 //# sourceMappingURL=role.service.js.map

@@ -62,25 +62,42 @@ export const serversService = {
   // Listener en tiempo real para servidores
   onServersChange: (callback: (servers: Server[]) => void) => {
     const serversCol = collection(db, 'servers');
-    return onSnapshot(serversCol, (snapshot) => {
-      const servers = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          name: data.name,
-          ip: data.ipAddress,
-          status: data.status,
-          location: data.location || 'N/A',
-          department: data.department,
-          cpuUsage: data.cpuUsage || 0,
-          memoryUsage: data.memoryUsage || 0,
-          diskUsage: data.diskUsage || 0,
-          lastActivity: data.lastSeen ? timestampToDate(data.lastSeen) : new Date(),
-          tags: data.tags || [],
-        };
-      });
-      callback(servers);
-    });
+    
+    console.log('🔌 Configurando listener de servidores...');
+    
+    return onSnapshot(
+      serversCol,
+      (snapshot) => {
+        console.log(`📡 onServersChange: ${snapshot.size} servidores recibidos`);
+        console.log(`   Cambios: ${snapshot.docChanges().length} documentos modificados`);
+        
+        const servers = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: data.name,
+            ip: data.ipAddress,
+            status: data.status,
+            location: data.location || 'N/A',
+            department: data.department,
+            cpuUsage: data.cpuUsage || 0,
+            memoryUsage: data.memoryUsage || 0,
+            diskUsage: data.diskUsage || 0,
+            lastActivity: data.lastSeen ? timestampToDate(data.lastSeen) : new Date(),
+            tags: data.tags || [],
+          };
+        });
+        console.log(`✅ Callback ejecutado con ${servers.length} servidores`);
+        callback(servers);
+      },
+      (error) => {
+        console.error('❌ Error en listener de servidores:', error);
+        console.error('   Código:', error.code);
+        console.error('   Mensaje:', error.message);
+        // Intentar cargar datos una vez más en caso de error
+        getAll().then(callback).catch(() => callback([]));
+      }
+    );
   },
 
   // Obtener servidor por ID
@@ -111,10 +128,11 @@ export const alertsService = {
   // Obtener todas las alertas
   getAll: async (): Promise<Alert[]> => {
     const alertsCol = collection(db, 'alerts');
-    const q = query(alertsCol, orderBy('createdAt', 'desc'), limit(50));
+    // Usar consulta simple sin orderBy para evitar problemas con índices
+    const q = query(alertsCol, limit(50));
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.map((doc) => {
+    const alerts = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -128,30 +146,52 @@ export const alertsService = {
         status: data.status === 'open' ? 'active' : data.status,
       };
     });
+    // Ordenar manualmente por timestamp
+    alerts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return alerts;
   },
 
   // Listener en tiempo real para alertas
   onAlertsChange: (callback: (alerts: Alert[]) => void) => {
     const alertsCol = collection(db, 'alerts');
-    const q = query(alertsCol, orderBy('createdAt', 'desc'), limit(50));
+    // Usar consulta simple sin orderBy para evitar problemas con índices
+    const q = query(alertsCol, limit(50));
     
-    return onSnapshot(q, (snapshot) => {
-      const alerts = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          type: data.type,
-          severity: data.severity,
-          serverId: data.serverId,
-          serverName: data.serverName,
-          title: data.title,
-          description: data.description,
-          timestamp: data.createdAt ? timestampToDate(data.createdAt) : new Date(),
-          status: data.status === 'open' ? 'active' : data.status,
-        };
-      });
-      callback(alerts);
-    });
+    console.log('🔌 Configurando listener de alertas...');
+    
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        console.log(`📡 onAlertsChange: ${snapshot.size} alertas recibidas`);
+        console.log(`   Cambios: ${snapshot.docChanges().length} documentos modificados`);
+        
+        const alerts = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            type: data.type,
+            severity: data.severity,
+            serverId: data.serverId,
+            serverName: data.serverName,
+            title: data.title,
+            description: data.description,
+            timestamp: data.createdAt ? timestampToDate(data.createdAt) : new Date(),
+            status: data.status === 'open' ? 'active' : data.status,
+          };
+        });
+        // Ordenar manualmente por timestamp
+        alerts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        console.log(`✅ Callback ejecutado con ${alerts.length} alertas`);
+        callback(alerts);
+      },
+      (error) => {
+        console.error('❌ Error en listener de alertas:', error);
+        console.error('   Código:', error.code);
+        console.error('   Mensaje:', error.message);
+        // Intentar cargar datos una vez más en caso de error
+        getAll().then(callback).catch(() => callback([]));
+      }
+    );
   },
 
   // Obtener alertas activas
@@ -222,29 +262,50 @@ export const threatsService = {
   // Listener en tiempo real
   onThreatsChange: (callback: (threats: Threat[]) => void) => {
     const alertsCol = collection(db, 'alerts');
-    const q = query(
-      alertsCol,
-      where('status', 'in', ['open', 'acknowledged']),
-      orderBy('createdAt', 'desc'),
-      limit(20)
-    );
+    // Usar consulta simple sin orderBy para evitar problemas con índices
+    const q = query(alertsCol, limit(50));
     
-    return onSnapshot(q, (snapshot) => {
-      const threats = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          type: data.type,
-          severity: data.severity,
-          serverId: data.serverId,
-          serverName: data.serverName,
-          description: data.description,
-          timestamp: data.createdAt ? timestampToDate(data.createdAt) : new Date(),
-          status: 'detected',
-        };
-      });
-      callback(threats);
-    });
+    console.log('🔌 Configurando listener de amenazas...');
+    
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        console.log(`📡 onThreatsChange: ${snapshot.size} alertas recibidas`);
+        
+        // Filtrar solo las alertas abiertas o reconocidas
+        const threats = snapshot.docs
+          .map((doc) => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              type: data.type,
+              severity: data.severity,
+              serverId: data.serverId,
+              serverName: data.serverName,
+              description: data.description,
+              timestamp: data.createdAt ? timestampToDate(data.createdAt) : new Date(),
+              status: 'detected',
+            };
+          })
+          .filter((threat) => {
+            const alert = snapshot.docs.find((d) => d.id === threat.id);
+            if (!alert) return false;
+            const status = alert.data().status;
+            return status === 'open' || status === 'acknowledged';
+          });
+        
+        // Ordenar manualmente por timestamp
+        threats.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        console.log(`✅ Callback ejecutado con ${threats.length} amenazas`);
+        callback(threats);
+      },
+      (error) => {
+        console.error('❌ Error en listener de amenazas:', error);
+        console.error('   Código:', error.code);
+        console.error('   Mensaje:', error.message);
+        callback([]);
+      }
+    );
   },
 };
 
@@ -562,11 +623,106 @@ export const incidentsService = {
   },
 };
 
+// ===== DETECTION SERVICE =====
+
+export const detectionService = {
+  // Ejecutar detección manual llamando a la Cloud Function
+  runManualDetection: async (): Promise<{ success: boolean; message: string; data?: any }> => {
+    // Obtener el project ID real - usar lincoln-587b0 que es el proyecto real
+    const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'lincoln-587b0';
+    const useEmulator = import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATOR !== 'false';
+    
+    console.log('🔍 Intentando ejecutar detección manual...');
+    console.log('📍 Modo:', useEmulator ? 'Emulador' : 'Producción');
+    console.log('📦 Project ID:', projectId);
+    
+    // Usar directamente la función HTTP (más confiable con CORS)
+    try {
+        // Para emuladores, la URL es diferente
+        // Formato: http://localhost:5001/[PROJECT_ID]/us-central1/[FUNCTION_NAME]
+        const baseUrl = useEmulator
+          ? `http://localhost:5001/${projectId}/us-central1`
+          : `https://us-central1-${projectId}.cloudfunctions.net`;
+        
+        const httpUrl = `${baseUrl}/runDetectionManualHTTP`;
+        console.log('🌐 Intentando función HTTP:', httpUrl);
+        console.log('🌐 URL completa:', httpUrl);
+        
+        // Agregar timeout para fetch
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        
+        const response = await fetch(httpUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ Detección ejecutada (HTTP):', data);
+        
+        return {
+          success: true,
+          message: `Detección manual ejecutada correctamente. ${data?.threatsDetected || 0} amenaza(s) detectada(s)`,
+          data,
+        };
+    } catch (httpError: any) {
+      console.error('❌ Error ejecutando detección manual (HTTP):', httpError);
+      console.error('❌ Detalles del error:', {
+        name: httpError.name,
+        message: httpError.message,
+        stack: httpError.stack,
+      });
+      
+      // Mensaje de error más descriptivo
+      let errorMessage = 'Error al ejecutar detección manual.';
+      const expectedUrl = useEmulator 
+        ? `http://localhost:5001/${projectId}/us-central1/runDetectionManualHTTP`
+        : `https://us-central1-${projectId}.cloudfunctions.net/runDetectionManualHTTP`;
+      
+      if (httpError.name === 'AbortError' || httpError.message?.includes('Timeout')) {
+        errorMessage = `Timeout: Las Firebase Functions no respondieron después de 30 segundos.\n\n` +
+          `Asegúrate de que:\n` +
+          `1. Los emuladores estén corriendo (verifica la ventana de emuladores)\n` +
+          `2. La función esté compilada (cd functions && npm run build)\n` +
+          `3. La URL es correcta: ${expectedUrl}`;
+      } else if (httpError.message?.includes('Failed to fetch') || httpError.message?.includes('network') || httpError.message?.includes('CORS')) {
+        errorMessage = `No se pudo conectar con las Firebase Functions.\n\n` +
+          `Verifica que:\n` +
+          `1. Los emuladores estén corriendo en otra ventana\n` +
+          `2. El project ID sea correcto: ${projectId}\n` +
+          `3. La URL esperada sea accesible: ${expectedUrl}\n\n` +
+          `Abre esta URL en tu navegador para verificar que la función esté disponible.`;
+      } else {
+        errorMessage = `${httpError.message || 'Error desconocido al ejecutar detección manual.'}\n\n` +
+          `URL intentada: ${expectedUrl}\n` +
+          `Project ID: ${projectId}\n` +
+          `Modo: ${useEmulator ? 'Emulador' : 'Producción'}`;
+      }
+      
+      return {
+        success: false,
+        message: errorMessage,
+      };
+    }
+  },
+};
+
 export default {
   servers: serversService,
   alerts: alertsService,
   threats: threatsService,
   stats: statsService,
   incidents: incidentsService,
+  detection: detectionService,
 };
 

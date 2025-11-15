@@ -5,7 +5,7 @@
  */
 
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, setDoc, doc, serverTimestamp, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, setDoc, doc, serverTimestamp, Timestamp, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 
 // Configuración de Firebase para emuladores
@@ -301,19 +301,19 @@ async function populateFirestore() {
         ],
         timeline: [
           {
-            timestamp: serverTimestamp(),
+            timestamp: Timestamp.fromDate(new Date()),
             action: 'detected',
             actor: 'system',
             description: 'Ransomware detectado en /var/www del servidor principal'
           },
           {
-            timestamp: serverTimestamp(),
+            timestamp: Timestamp.fromDate(new Date()),
             action: 'automated_response',
             actor: 'system',
             description: 'Servidor aislado automáticamente de la red'
           },
           {
-            timestamp: serverTimestamp(),
+            timestamp: Timestamp.fromDate(new Date()),
             action: 'investigating',
             actor: 'admin',
             description: 'Investigación iniciada por el equipo de seguridad'
@@ -342,19 +342,19 @@ async function populateFirestore() {
         ],
         timeline: [
           {
-            timestamp: serverTimestamp(),
+            timestamp: Timestamp.fromDate(new Date()),
             action: 'detected',
             actor: 'system',
             description: 'Múltiples intentos de acceso fallidos desde IP externa'
           },
           {
-            timestamp: serverTimestamp(),
+            timestamp: Timestamp.fromDate(new Date()),
             action: 'contained',
             actor: 'system',
             description: 'Amenaza contenida - IP bloqueada'
           },
           {
-            timestamp: serverTimestamp(),
+            timestamp: Timestamp.fromDate(new Date()),
             action: 'resolved',
             actor: 'admin',
             description: 'Incidente resuelto - Sistema seguro'
@@ -379,7 +379,7 @@ async function populateFirestore() {
         manualActions: [],
         timeline: [
           {
-            timestamp: serverTimestamp(),
+            timestamp: Timestamp.fromDate(new Date()),
             action: 'detected',
             actor: 'system',
             description: 'Transferencia masiva de datos detectada (2.5GB)'
@@ -406,7 +406,7 @@ async function populateFirestore() {
     console.log('   - Configuración del sistema: 1');
     console.log('   - Estadísticas: 1');
     console.log('\n🌐 Verifica los datos en:');
-    console.log('   - http://localhost:4000/firestore');
+    console.log('   - http://localhost:4001/firestore');
     console.log('\n💡 Ahora recarga tu Dashboard: http://localhost:3000/dashboard');
     console.log('');
 

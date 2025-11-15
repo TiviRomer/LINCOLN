@@ -1,8 +1,8 @@
-import * as admin from 'firebase-admin';
+import * as admin from "firebase-admin";
 
-export type IncidentStatus = 'active' | 'investigating' | 'contained' | 'resolved';
-export type ThreatSeverity = 'low' | 'medium' | 'high' | 'critical';
-export type ThreatType = 'ransomware' | 'intrusion' | 'data_leak' | 'anomalous_behavior';
+export type IncidentStatus = "active" | "investigating" | "contained" | "resolved";
+export type ThreatSeverity = "low" | "medium" | "high" | "critical";
+export type ThreatType = "ransomware" | "intrusion" | "data_leak" | "anomalous_behavior";
 
 export interface IncidentTimelineEvent {
   timestamp: admin.firestore.Timestamp | admin.firestore.FieldValue;
@@ -30,7 +30,7 @@ export interface Incident {
 }
 
 // Tipo para la creación de incidentes
-export type CreateIncident = Omit<Incident, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'resolvedAt' | 'assignedTo'> & {
+export type CreateIncident = Omit<Incident, "id" | "createdAt" | "updatedAt" | "status" | "resolvedAt" | "assignedTo"> & {
   status: IncidentStatus;
   resolvedAt?: admin.firestore.FieldValue;
   assignedTo?: string | null;
@@ -40,7 +40,7 @@ export type CreateIncident = Omit<Incident, 'id' | 'createdAt' | 'updatedAt' | '
 
 export const incidentConverter = {
   toFirestore: (incident: Partial<Incident>) => {
-    const data: any = { ...incident };
+    const data: any = {...incident};
     // No incluir el ID en los datos del documento
     delete data.id;
     return data;
@@ -64,6 +64,6 @@ export const incidentConverter = {
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
     };
-  }
+  },
 };
 

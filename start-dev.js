@@ -112,8 +112,75 @@ console.log('📍 Directorio raíz:', rootDir);
 console.log('📂 Directorio frontend:', frontendDir);
 console.log();
 
-// Iniciar emuladores de Firebase
-console.log('🔥 Paso 1: Iniciando emuladores de Firebase...');
+// Función para ejecutar scripts de Node de forma síncrona
+const runScript = (scriptPath, label) => {
+  return new Promise((resolve, reject) => {
+    console.log(`\n📝 ${label}...`);
+    const scriptProcess = spawn('node', [scriptPath], {
+      cwd: rootDir,
+      shell: true,
+      stdio: 'inherit'
+    });
+
+    scriptProcess.on('close', (code) => {
+      if (code === 0) {
+        console.log(`✅ ${label} completado\n`);
+        resolve();
+      } else {
+        console.log(`⚠️  ${label} terminó con código ${code}\n`);
+        // No rechazamos para que continúe aunque haya un error menor
+        resolve();
+      }
+    });
+
+    scriptProcess.on('error', (error) => {
+      console.log(`❌ Error ejecutando ${label}:`, error.message);
+      // No rechazamos para que continúe
+      resolve();
+    });
+  });
+};
+
+// Función para poblar datos automáticamente
+const populateData = async () => {
+  try {
+    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('📊 POBLACIÓN AUTOMÁTICA DE DATOS');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+    // Verificar si ya hay datos (para no sobrescribir)
+    const fs = require('fs');
+    const emulatorDataPath = path.join(rootDir, 'emulator-data', 'firestore_export');
+    const hasExistingData = fs.existsSync(emulatorDataPath) && 
+                           fs.readdirSync(emulatorDataPath).length > 0;
+
+    if (hasExistingData) {
+      console.log('💡 Datos existentes detectados en ./emulator-data');
+      console.log('   Saltando población automática para preservar tus datos');
+      console.log('   Si quieres poblar desde cero, borra ./emulator-data\n');
+      return;
+    }
+
+    // Paso 1: Configurar sistema de detección
+    await runScript('scripts/setup-detection-config.js', 'Configurando sistema de detección');
+
+    // Paso 2: Poblar Firestore con datos básicos
+    await runScript('scripts/populate-firestore.js', 'Poblando Firestore con datos básicos');
+
+    // Paso 3: Poblar métricas de servidores (incluye amenazas de prueba)
+    await runScript('scripts/populate-server-metrics.js', 'Poblando métricas de servidores');
+
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('✅ POBLACIÓN DE DATOS COMPLETADA');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+  } catch (error) {
+    console.log('\n⚠️  Error en población de datos:', error.message);
+    console.log('   Continuando con el inicio del sistema...\n');
+  }
+};
+
+// Iniciar emuladores de Firebase (incluyendo Functions)
+console.log('🔥 Paso 1: Iniciando emuladores de Firebase (con Functions)...');
 const emulatorsProcess = runInBackground(
   'firebase',
   ['emulators:start', '--import=./emulator-data', '--export-on-exit'],
@@ -122,9 +189,13 @@ const emulatorsProcess = runInBackground(
   '\x1b[33m'
 );
 
-// Esperar 5 segundos antes de iniciar el frontend
-setTimeout(() => {
-  console.log('\n🌐 Paso 2: Iniciando aplicación frontend...\n');
+// Esperar a que los emuladores estén listos (15 segundos)
+setTimeout(async () => {
+  // Poblar datos automáticamente
+  await populateData();
+
+  // Iniciar frontend después de poblar datos
+  console.log('🌐 Paso 2: Iniciando aplicación frontend...\n');
   const frontendProcess = runInBackground(
     'npm',
     ['run', 'dev'],
@@ -136,7 +207,7 @@ setTimeout(() => {
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('✅ Entorno de desarrollo iniciado\n');
   console.log('📱 Frontend: http://localhost:3000');
-  console.log('🔥 Firebase UI: http://localhost:4000');
+  console.log('🔥 Firebase UI: http://localhost:4001');
   console.log('🔐 Auth Emulator: http://localhost:9099');
   console.log('📊 Firestore Emulator: http://localhost:8082');
   console.log('⚡ Functions Emulator: http://localhost:5001');
@@ -148,7 +219,7 @@ setTimeout(() => {
   console.log('   2. ESPERA a que termine la exportación');
   console.log('   3. No cierres la ventana bruscamente');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-}, 5000);
+}, 15000);
 
 // Manejar Ctrl+C (SIGINT)
 process.on('SIGINT', shutdownAll);

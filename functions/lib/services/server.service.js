@@ -9,32 +9,32 @@ class ServerService {
         // Validate department exists
         const department = await department_service_1.DepartmentService.getDepartment(serverData.department);
         if (!department) {
-            throw new Error('El departamento especificado no existe');
+            throw new Error("El departamento especificado no existe");
         }
         // Check for duplicate IP or hostname
         const [existingByIp, existingByHostname] = await Promise.all([
             this.getServerByIp(serverData.ipAddress),
-            this.getServerByHostname(serverData.hostname)
+            this.getServerByHostname(serverData.hostname),
         ]);
         if (existingByIp) {
-            throw new Error('Ya existe un servidor con esta dirección IP');
+            throw new Error("Ya existe un servidor con esta dirección IP");
         }
         if (existingByHostname) {
-            throw new Error('Ya existe un servidor con este nombre de host');
+            throw new Error("Ya existe un servidor con este nombre de host");
         }
         const now = admin.firestore.FieldValue.serverTimestamp();
-        const newServer = Object.assign(Object.assign({}, serverData), { isActive: true, status: 'offline', createdAt: now, updatedAt: now });
+        const newServer = Object.assign(Object.assign({}, serverData), { isActive: true, status: "offline", createdAt: now, updatedAt: now });
         const serverRef = await admin.firestore()
             .collection(this.collection)
             .withConverter(server_model_1.serverConverter)
             .add(newServer);
         const serverDoc = await serverRef.withConverter(server_model_1.serverConverter).get();
-        const serverData = serverDoc.data();
-        if (!serverData) {
-            throw new Error('Error al crear el servidor');
+        const createdServerData = serverDoc.data();
+        if (!createdServerData) {
+            throw new Error("Error al crear el servidor");
         }
         // Create a new object with the id to satisfy the Server type
-        return Object.assign(Object.assign({}, serverData), { id: serverDoc.id });
+        return Object.assign(Object.assign({}, createdServerData), { id: serverDoc.id });
     }
     static async getServer(serverId) {
         const serverDoc = await admin.firestore()
@@ -51,31 +51,31 @@ class ServerService {
             return null;
         const [department, alertStats] = await Promise.all([
             department_service_1.DepartmentService.getDepartment(server.department),
-            this.getServerAlertStats(serverId)
+            this.getServerAlertStats(serverId),
         ]);
         return {
             server,
             department: department || null,
-            stats: alertStats
+            stats: alertStats,
         };
     }
     static async updateServer(serverId, data) {
         if (data.department) {
             const department = await department_service_1.DepartmentService.getDepartment(data.department);
             if (!department) {
-                throw new Error('El departamento especificado no existe');
+                throw new Error("El departamento especificado no existe");
             }
         }
         if (data.ipAddress || data.hostname) {
             const [existingByIp, existingByHostname] = await Promise.all([
                 data.ipAddress ? this.getServerByIp(data.ipAddress) : null,
-                data.hostname ? this.getServerByHostname(data.hostname) : null
+                data.hostname ? this.getServerByHostname(data.hostname) : null,
             ]);
             if (existingByIp && existingByIp.id !== serverId) {
-                throw new Error('Ya existe otro servidor con esta dirección IP');
+                throw new Error("Ya existe otro servidor con esta dirección IP");
             }
             if (existingByHostname && existingByHostname.id !== serverId) {
-                throw new Error('Ya existe otro servidor con este nombre de host');
+                throw new Error("Ya existe otro servidor con este nombre de host");
             }
         }
         await admin.firestore()
@@ -86,36 +86,36 @@ class ServerService {
     }
     static async deactivateServer(serverId) {
         // Check if server has active alerts
-        const AlertService = (await Promise.resolve().then(() => require('./alert.service'))).AlertService;
+        const AlertService = (await Promise.resolve().then(() => require("./alert.service"))).AlertService;
         const activeAlerts = await AlertService.listAlerts({
             serverId,
-            status: 'open'
+            status: "open",
         });
         if (activeAlerts.length > 0) {
-            throw new Error('No se puede desactivar el servidor porque tiene alertas activas');
+            throw new Error("No se puede desactivar el servidor porque tiene alertas activas");
         }
         await this.updateServer(serverId, {
             isActive: false,
-            status: 'offline',
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            status: "offline",
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
     }
     static async activateServer(serverId) {
         await this.updateServer(serverId, {
             isActive: true,
-            status: 'offline', // Will update on next ping
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            status: "offline", // Will update on next ping
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
     }
     static async deleteServer(serverId) {
         // Check if server has any alerts
-        const AlertService = (await Promise.resolve().then(() => require('./alert.service'))).AlertService;
+        const AlertService = (await Promise.resolve().then(() => require("./alert.service"))).AlertService;
         const alerts = await AlertService.listAlerts({
             serverId,
-            limit: 1
+            limit: 1,
         });
         if (alerts.length > 0) {
-            throw new Error('No se puede eliminar el servidor porque tiene alertas asociadas');
+            throw new Error("No se puede eliminar el servidor porque tiene alertas asociadas");
         }
         await admin.firestore()
             .collection(this.collection)
@@ -123,22 +123,22 @@ class ServerService {
             .delete();
     }
     static async getServerAlertStats(serverId) {
-        const AlertService = (await Promise.resolve().then(() => require('./alert.service'))).AlertService;
+        const AlertService = (await Promise.resolve().then(() => require("./alert.service"))).AlertService;
         const [allAlerts, openAlerts] = await Promise.all([
-            AlertService.listAlerts({ serverId, limit: 1, sortBy: 'createdAt', sortOrder: 'desc' }),
-            AlertService.listAlerts({ serverId, status: 'open' })
+            AlertService.listAlerts({ serverId, limit: 1 }),
+            AlertService.listAlerts({ serverId, status: "open" }),
         ]);
         return {
             alertCount: allAlerts.length,
             activeAlerts: openAlerts.length,
-            lastAlert: allAlerts[0] || null
+            lastAlert: allAlerts[0] || null,
         };
     }
-    static async updateServerStatus(serverId, status, metadata = {}) {
+    static async updateServerStatusWithMetadata(serverId, status, metadata = {}) {
         const updateData = {
             status,
             lastSeen: admin.firestore.FieldValue.serverTimestamp(),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         };
         // Add metadata if provided
         if (metadata.cpuUsage !== undefined)
@@ -157,60 +157,99 @@ class ServerService {
     static async checkServerStatus(serverId) {
         const server = await this.getServer(serverId);
         if (!server) {
-            throw new Error('Servidor no encontrado');
+            throw new Error("Servidor no encontrado");
         }
         const now = Date.now();
         const lastSeen = server.lastSeen;
         const lastSeenMs = lastSeen ? lastSeen.toMillis() : 0;
-        const isOnline = server.status === 'online' &&
+        const isOnline = server.status === "online" &&
             (now - lastSeenMs) < this.PING_TIMEOUT;
         return {
-            status: isOnline ? 'online' : 'offline',
+            status: isOnline ? "online" : "offline",
             lastSeen: lastSeen || null,
-            isActive: server.isActive
+            isActive: server.isActive,
         };
     }
     static async listServers(filters = {}) {
         let query = admin.firestore()
             .collection(this.collection)
             .withConverter(server_model_1.serverConverter);
-        if (filters.isActive !== undefined) {
-            query = query.where('isActive', '==', filters.isActive);
+        try {
+            // Aplicar filtros solo si están definidos
+            // Nota: Firestore requiere índices compuestos para múltiples where
+            // Por eso solo aplicamos el primer filtro crítico en la query
+            if (filters.isActive !== undefined) {
+                query = query.where("isActive", "==", filters.isActive);
+            }
+            // Si hay múltiples filtros, solo aplicar los que no requieren índices compuestos
+            // Los demás se filtrarán en memoria después
+            if (filters.department && filters.isActive === undefined) {
+                query = query.where("department", "==", filters.department);
+            }
+            if (filters.environment && filters.isActive === undefined && !filters.department) {
+                query = query.where("environment", "==", filters.environment);
+            }
+            // No necesitamos el total aquí, lo calculamos después de filtrar
+            // Apply sorting
+            const sortBy = filters.sortBy || "name";
+            const sortOrder = filters.sortOrder || "asc";
+            query = query.orderBy(sortBy, sortOrder);
+            // Apply pagination
+            if (filters.offset) {
+                query = query.offset(filters.offset);
+            }
+            if (filters.limit) {
+                query = query.limit(filters.limit);
+            }
+            const snapshot = await query.get();
+            let servers = snapshot.docs.map((doc) => (Object.assign(Object.assign({}, doc.data()), { id: doc.id })));
+            // Aplicar filtros adicionales en memoria (para evitar problemas de índice)
+            if (filters.status && filters.isActive !== undefined) {
+                // Filtrar status en memoria si ya filtramos por isActive
+                servers = servers.filter(s => s.status === filters.status);
+            }
+            if (filters.environment && filters.isActive !== undefined) {
+                servers = servers.filter(s => s.environment === filters.environment);
+            }
+            if (filters.department && filters.isActive !== undefined) {
+                servers = servers.filter(s => s.department === filters.department);
+            }
+            // Apply search filter if provided
+            if (filters.searchTerm) {
+                const searchTerm = filters.searchTerm.toLowerCase();
+                servers = servers.filter((server) => server.name.toLowerCase().includes(searchTerm) ||
+                    server.hostname.toLowerCase().includes(searchTerm) ||
+                    server.ipAddress.includes(searchTerm));
+            }
+            return { servers, total: servers.length };
         }
-        if (filters.environment) {
-            query = query.where('environment', '==', filters.environment);
+        catch (error) {
+            console.error(`❌ Error en listServers:`, error.message);
+            // Si falla la query con múltiples where, intentar sin filtros
+            if (error.message.includes("index") || error.message.includes("requires an index")) {
+                console.log("⚠️  Query requiere índice compuesto, obteniendo todos los servidores...");
+                const allSnapshot = await admin.firestore()
+                    .collection(this.collection)
+                    .withConverter(server_model_1.serverConverter)
+                    .get();
+                let allServers = allSnapshot.docs.map((doc) => (Object.assign(Object.assign({}, doc.data()), { id: doc.id })));
+                // Aplicar todos los filtros en memoria
+                if (filters.isActive !== undefined) {
+                    allServers = allServers.filter(s => s.isActive === filters.isActive);
+                }
+                if (filters.status) {
+                    allServers = allServers.filter(s => s.status === filters.status);
+                }
+                if (filters.environment) {
+                    allServers = allServers.filter(s => s.environment === filters.environment);
+                }
+                if (filters.department) {
+                    allServers = allServers.filter(s => s.department === filters.department);
+                }
+                return { servers: allServers, total: allServers.length };
+            }
+            throw error;
         }
-        if (filters.department) {
-            query = query.where('department', '==', filters.department);
-        }
-        if (filters.status) {
-            query = query.where('status', '==', filters.status);
-        }
-        // Get total count before applying pagination
-        const countQuery = query;
-        const totalSnapshot = await countQuery.count().get();
-        const total = totalSnapshot.data().count;
-        // Apply sorting
-        const sortBy = filters.sortBy || 'name';
-        const sortOrder = filters.sortOrder || 'asc';
-        query = query.orderBy(sortBy, sortOrder);
-        // Apply pagination
-        if (filters.offset) {
-            query = query.offset(filters.offset);
-        }
-        if (filters.limit) {
-            query = query.limit(filters.limit);
-        }
-        const snapshot = await query.get();
-        let servers = snapshot.docs.map(doc => (Object.assign(Object.assign({}, doc.data()), { id: doc.id })));
-        // Apply search filter if provided
-        if (filters.searchTerm) {
-            const searchTerm = filters.searchTerm.toLowerCase();
-            servers = servers.filter(server => server.name.toLowerCase().includes(searchTerm) ||
-                server.hostname.toLowerCase().includes(searchTerm) ||
-                server.ipAddress.includes(searchTerm));
-        }
-        return { servers, total };
     }
     static async getActiveServers() {
         const { servers } = await this.listServers({ isActive: true });
@@ -219,7 +258,7 @@ class ServerService {
     static async getServerByIp(ipAddress) {
         const snapshot = await admin.firestore()
             .collection(this.collection)
-            .where('ipAddress', '==', ipAddress)
+            .where("ipAddress", "==", ipAddress)
             .withConverter(server_model_1.serverConverter)
             .limit(1)
             .get();
@@ -232,7 +271,7 @@ class ServerService {
     static async getServerByHostname(hostname) {
         const snapshot = await admin.firestore()
             .collection(this.collection)
-            .where('hostname', '==', hostname.toLowerCase())
+            .where("hostname", "==", hostname.toLowerCase())
             .withConverter(server_model_1.serverConverter)
             .limit(1)
             .get();
@@ -245,7 +284,7 @@ class ServerService {
     static async updateServerStatus(serverId, status, lastSeen) {
         const updateData = {
             status,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         };
         if (lastSeen) {
             updateData.lastSeen = admin.firestore.Timestamp.fromDate(lastSeen);
@@ -254,6 +293,6 @@ class ServerService {
     }
 }
 exports.ServerService = ServerService;
-ServerService.collection = 'servers';
+ServerService.collection = "servers";
 ServerService.PING_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
 //# sourceMappingURL=server.service.js.map

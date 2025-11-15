@@ -1,39 +1,39 @@
-import * as admin from 'firebase-admin';
-import { Server, serverConverter, CreateServer } from '../models/server.model';
-import { DepartmentService } from './department.service';
+import * as admin from "firebase-admin";
+import {Server, serverConverter, CreateServer} from "../models/server.model";
+import {DepartmentService} from "./department.service";
 
 export class ServerService {
-  private static readonly collection = 'servers';
+  private static readonly collection = "servers";
   private static readonly PING_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
 
-  static async createServer(serverData: Omit<CreateServer, 'createdAt' | 'updatedAt' | 'isActive' | 'status'>): Promise<Server> {
+  static async createServer(serverData: Omit<CreateServer, "createdAt" | "updatedAt" | "isActive" | "status">): Promise<Server> {
     // Validate department exists
     const department = await DepartmentService.getDepartment(serverData.department);
     if (!department) {
-      throw new Error('El departamento especificado no existe');
+      throw new Error("El departamento especificado no existe");
     }
 
     // Check for duplicate IP or hostname
     const [existingByIp, existingByHostname] = await Promise.all([
       this.getServerByIp(serverData.ipAddress),
-      this.getServerByHostname(serverData.hostname)
+      this.getServerByHostname(serverData.hostname),
     ]);
 
     if (existingByIp) {
-      throw new Error('Ya existe un servidor con esta dirección IP');
+      throw new Error("Ya existe un servidor con esta dirección IP");
     }
 
     if (existingByHostname) {
-      throw new Error('Ya existe un servidor con este nombre de host');
+      throw new Error("Ya existe un servidor con este nombre de host");
     }
 
     const now = admin.firestore.FieldValue.serverTimestamp();
     const newServer: CreateServer = {
       ...serverData,
       isActive: true,
-      status: 'offline', // Default status until first ping
+      status: "offline", // Default status until first ping
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     };
 
     const serverRef = await admin.firestore()
@@ -42,12 +42,12 @@ export class ServerService {
       .add(newServer);
 
     const serverDoc = await serverRef.withConverter(serverConverter).get();
-    const serverData = serverDoc.data();
-    if (!serverData) {
-      throw new Error('Error al crear el servidor');
+    const createdServerData = serverDoc.data();
+    if (!createdServerData) {
+      throw new Error("Error al crear el servidor");
     }
     // Create a new object with the id to satisfy the Server type
-    return { ...serverData, id: serverDoc.id };
+    return {...createdServerData, id: serverDoc.id} as Server;
   }
 
   static async getServer(serverId: string): Promise<Server | null> {
@@ -58,7 +58,7 @@ export class ServerService {
       .get();
 
     const data = serverDoc.data();
-    return data ? { ...data, id: serverDoc.id } : null;
+    return data ? {...data, id: serverDoc.id} as Server : null;
   }
 
   static async getServerWithDetails(serverId: string): Promise<{
@@ -75,39 +75,39 @@ export class ServerService {
 
     const [department, alertStats] = await Promise.all([
       DepartmentService.getDepartment(server.department),
-      this.getServerAlertStats(serverId)
+      this.getServerAlertStats(serverId),
     ]);
 
     return {
       server,
       department: department || null,
-      stats: alertStats
+      stats: alertStats,
     };
   }
 
   static async updateServer(
     serverId: string,
-    data: Partial<Omit<Server, 'id' | 'createdAt'>>
+    data: Partial<Omit<Server, "id" | "createdAt">>,
   ): Promise<void> {
     if (data.department) {
       const department = await DepartmentService.getDepartment(data.department);
       if (!department) {
-        throw new Error('El departamento especificado no existe');
+        throw new Error("El departamento especificado no existe");
       }
     }
 
     if (data.ipAddress || data.hostname) {
       const [existingByIp, existingByHostname] = await Promise.all([
         data.ipAddress ? this.getServerByIp(data.ipAddress) : null,
-        data.hostname ? this.getServerByHostname(data.hostname) : null
+        data.hostname ? this.getServerByHostname(data.hostname) : null,
       ]);
 
       if (existingByIp && existingByIp.id !== serverId) {
-        throw new Error('Ya existe otro servidor con esta dirección IP');
+        throw new Error("Ya existe otro servidor con esta dirección IP");
       }
 
       if (existingByHostname && existingByHostname.id !== serverId) {
-        throw new Error('Ya existe otro servidor con este nombre de host');
+        throw new Error("Ya existe otro servidor con este nombre de host");
       }
     }
 
@@ -117,47 +117,47 @@ export class ServerService {
       .withConverter(serverConverter)
       .set({
         ...data,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
   }
 
   static async deactivateServer(serverId: string): Promise<void> {
     // Check if server has active alerts
-    const AlertService = (await import('./alert.service')).AlertService;
-    const activeAlerts = await AlertService.listAlerts({ 
+    const AlertService = (await import("./alert.service")).AlertService;
+    const activeAlerts = await AlertService.listAlerts({
       serverId,
-      status: 'open'
+      status: "open",
     });
 
     if (activeAlerts.length > 0) {
-      throw new Error('No se puede desactivar el servidor porque tiene alertas activas');
+      throw new Error("No se puede desactivar el servidor porque tiene alertas activas");
     }
 
-    await this.updateServer(serverId, { 
+    await this.updateServer(serverId, {
       isActive: false,
-      status: 'offline',
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      status: "offline",
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
   }
 
   static async activateServer(serverId: string): Promise<void> {
-    await this.updateServer(serverId, { 
+    await this.updateServer(serverId, {
       isActive: true,
-      status: 'offline', // Will update on next ping
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      status: "offline", // Will update on next ping
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
   }
 
   static async deleteServer(serverId: string): Promise<void> {
     // Check if server has any alerts
-    const AlertService = (await import('./alert.service')).AlertService;
-    const alerts = await AlertService.listAlerts({ 
+    const AlertService = (await import("./alert.service")).AlertService;
+    const alerts = await AlertService.listAlerts({
       serverId,
-      limit: 1
+      limit: 1,
     });
 
     if (alerts.length > 0) {
-      throw new Error('No se puede eliminar el servidor porque tiene alertas asociadas');
+      throw new Error("No se puede eliminar el servidor porque tiene alertas asociadas");
     }
 
     await admin.firestore()
@@ -171,33 +171,33 @@ export class ServerService {
     activeAlerts: number;
     lastAlert?: any;
   }> {
-    const AlertService = (await import('./alert.service')).AlertService;
+    const AlertService = (await import("./alert.service")).AlertService;
     const [allAlerts, openAlerts] = await Promise.all([
-      AlertService.listAlerts({ serverId, limit: 1, sortBy: 'createdAt', sortOrder: 'desc' }),
-      AlertService.listAlerts({ serverId, status: 'open' })
+      AlertService.listAlerts({serverId, limit: 1}),
+      AlertService.listAlerts({serverId, status: "open"}),
     ]);
 
     return {
       alertCount: allAlerts.length,
       activeAlerts: openAlerts.length,
-      lastAlert: allAlerts[0] || null
+      lastAlert: allAlerts[0] || null,
     };
   }
 
-  static async updateServerStatus(
-    serverId: string, 
-    status: 'online' | 'offline' | 'maintenance',
+  static async updateServerStatusWithMetadata(
+    serverId: string,
+    status: "online" | "offline" | "maintenance",
     metadata: {
       cpuUsage?: number;
       memoryUsage?: number;
       diskUsage?: number;
       uptime?: number;
-    } = {}
+    } = {},
   ): Promise<void> {
     const updateData: any = {
       status,
       lastSeen: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
     // Add metadata if provided
@@ -213,26 +213,26 @@ export class ServerService {
   }
 
   static async checkServerStatus(serverId: string): Promise<{
-    status: 'online' | 'offline' | 'maintenance';
+    status: "online" | "offline" | "maintenance";
     lastSeen: admin.firestore.Timestamp | null;
     isActive: boolean;
   }> {
     const server = await this.getServer(serverId);
     if (!server) {
-      throw new Error('Servidor no encontrado');
+      throw new Error("Servidor no encontrado");
     }
 
     const now = Date.now();
     const lastSeen = server.lastSeen as admin.firestore.Timestamp;
     const lastSeenMs = lastSeen ? lastSeen.toMillis() : 0;
 
-    const isOnline = server.status === 'online' && 
+    const isOnline = server.status === "online" &&
                     (now - lastSeenMs) < this.PING_TIMEOUT;
 
     return {
-      status: isOnline ? 'online' : 'offline',
+      status: isOnline ? "online" : "offline",
       lastSeen: lastSeen || null,
-      isActive: server.isActive
+      isActive: server.isActive,
     };
   }
 
@@ -240,12 +240,12 @@ export class ServerService {
     isActive?: boolean;
     environment?: string;
     department?: string;
-    status?: 'online' | 'offline' | 'maintenance';
+    status?: "online" | "offline" | "maintenance";
     searchTerm?: string;
     limit?: number;
     offset?: number;
-    sortBy?: 'name' | 'status' | 'environment' | 'lastSeen';
-    sortOrder?: 'asc' | 'desc';
+    sortBy?: "name" | "status" | "environment" | "lastSeen";
+    sortOrder?: "asc" | "desc";
   } = {}): Promise<{
     servers: Server[];
     total: number;
@@ -254,27 +254,28 @@ export class ServerService {
       .collection(this.collection)
       .withConverter(serverConverter);
 
-    if (filters.isActive !== undefined) {
-      query = query.where('isActive', '==', filters.isActive);
-    }
-    if (filters.environment) {
-      query = query.where('environment', '==', filters.environment);
-    }
-    if (filters.department) {
-      query = query.where('department', '==', filters.department);
-    }
-    if (filters.status) {
-      query = query.where('status', '==', filters.status);
-    }
+    try {
+      // Aplicar filtros solo si están definidos
+      // Nota: Firestore requiere índices compuestos para múltiples where
+      // Por eso solo aplicamos el primer filtro crítico en la query
+      if (filters.isActive !== undefined) {
+        query = query.where("isActive", "==", filters.isActive);
+      }
+      
+      // Si hay múltiples filtros, solo aplicar los que no requieren índices compuestos
+      // Los demás se filtrarán en memoria después
+      if (filters.department && filters.isActive === undefined) {
+        query = query.where("department", "==", filters.department);
+      }
+      if (filters.environment && filters.isActive === undefined && !filters.department) {
+        query = query.where("environment", "==", filters.environment);
+      }
 
-    // Get total count before applying pagination
-    const countQuery = query;
-    const totalSnapshot = await countQuery.count().get();
-    const total = totalSnapshot.data().count;
+    // No necesitamos el total aquí, lo calculamos después de filtrar
 
     // Apply sorting
-    const sortBy = filters.sortBy || 'name';
-    const sortOrder = filters.sortOrder || 'asc';
+    const sortBy = filters.sortBy || "name";
+    const sortOrder = filters.sortOrder || "asc";
     query = query.orderBy(sortBy, sortOrder);
 
     // Apply pagination
@@ -286,33 +287,78 @@ export class ServerService {
     }
 
     const snapshot = await query.get();
-    let servers = snapshot.docs.map(doc => ({
+    let servers = snapshot.docs.map((doc) => ({
       ...doc.data(),
-      id: doc.id
+      id: doc.id,
     } as Server));
+
+    // Aplicar filtros adicionales en memoria (para evitar problemas de índice)
+    if (filters.status && filters.isActive !== undefined) {
+      // Filtrar status en memoria si ya filtramos por isActive
+      servers = servers.filter(s => s.status === filters.status);
+    }
+    if (filters.environment && filters.isActive !== undefined) {
+      servers = servers.filter(s => s.environment === filters.environment);
+    }
+    if (filters.department && filters.isActive !== undefined) {
+      servers = servers.filter(s => s.department === filters.department);
+    }
 
     // Apply search filter if provided
     if (filters.searchTerm) {
       const searchTerm = filters.searchTerm.toLowerCase();
-      servers = servers.filter(server =>
+      servers = servers.filter((server) =>
         server.name.toLowerCase().includes(searchTerm) ||
         server.hostname.toLowerCase().includes(searchTerm) ||
-        server.ipAddress.includes(searchTerm)
+        server.ipAddress.includes(searchTerm),
       );
     }
 
-    return { servers, total };
+    return {servers, total: servers.length};
+    } catch (error: any) {
+      console.error(`❌ Error en listServers:`, error.message);
+      // Si falla la query con múltiples where, intentar sin filtros
+      if (error.message.includes("index") || error.message.includes("requires an index")) {
+        console.log("⚠️  Query requiere índice compuesto, obteniendo todos los servidores...");
+        const allSnapshot = await admin.firestore()
+          .collection(this.collection)
+          .withConverter(serverConverter)
+          .get();
+        
+        let allServers = allSnapshot.docs.map((doc) => ({
+          ...doc.data(),
+          id: doc.id,
+        } as Server));
+        
+        // Aplicar todos los filtros en memoria
+        if (filters.isActive !== undefined) {
+          allServers = allServers.filter(s => s.isActive === filters.isActive);
+        }
+        if (filters.status) {
+          allServers = allServers.filter(s => s.status === filters.status);
+        }
+        if (filters.environment) {
+          allServers = allServers.filter(s => s.environment === filters.environment);
+        }
+        if (filters.department) {
+          allServers = allServers.filter(s => s.department === filters.department);
+        }
+        
+        return {servers: allServers, total: allServers.length};
+      }
+      throw error;
+    }
   }
 
   static async getActiveServers(): Promise<Server[]> {
-    const { servers } = await this.listServers({ isActive: true });
+    const {servers} = await this.listServers({isActive: true});
     return servers;
   }
 
   static async getServerByIp(ipAddress: string): Promise<Server | null> {
     const snapshot = await admin.firestore()
       .collection(this.collection)
-      .where('ipAddress', '==', ipAddress)
+      .where("ipAddress", "==", ipAddress)
       .withConverter(serverConverter)
       .limit(1)
       .get();
@@ -320,13 +366,13 @@ export class ServerService {
     if (snapshot.empty) return null;
     const doc = snapshot.docs[0];
     const data = doc.data();
-    return { ...data, id: doc.id };
+    return {...data, id: doc.id} as Server;
   }
 
   static async getServerByHostname(hostname: string): Promise<Server | null> {
     const snapshot = await admin.firestore()
       .collection(this.collection)
-      .where('hostname', '==', hostname.toLowerCase())
+      .where("hostname", "==", hostname.toLowerCase())
       .withConverter(serverConverter)
       .limit(1)
       .get();
@@ -334,17 +380,17 @@ export class ServerService {
     if (snapshot.empty) return null;
     const doc = snapshot.docs[0];
     const data = doc.data();
-    return { ...data, id: doc.id };
+    return {...data, id: doc.id} as Server;
   }
 
   static async updateServerStatus(
     serverId: string,
-    status: 'online' | 'offline' | 'maintenance',
-    lastSeen?: Date
+    status: "online" | "offline" | "maintenance",
+    lastSeen?: Date,
   ): Promise<void> {
     const updateData: any = {
       status,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
     if (lastSeen) {

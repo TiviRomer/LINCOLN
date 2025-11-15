@@ -12,11 +12,12 @@ class DepartmentService {
             .withConverter(department_model_1.departmentConverter)
             .add(newDepartment);
         const departmentDoc = await departmentRef.withConverter(department_model_1.departmentConverter).get();
-        const department = departmentDoc.data();
-        if (!department) {
-            throw new Error('Error al crear el departamento');
+        const departmentResult = departmentDoc.data();
+        if (!departmentResult) {
+            throw new Error("Error al crear el departamento");
         }
-        return department;
+        // El converter ya incluye el id
+        return departmentResult;
     }
     static async getDepartment(departmentId) {
         const departmentDoc = await admin.firestore()
@@ -24,12 +25,14 @@ class DepartmentService {
             .doc(departmentId)
             .withConverter(department_model_1.departmentConverter)
             .get();
-        return departmentDoc.data() || null;
+        const departmentResult = departmentDoc.data();
+        // El converter ya incluye el id
+        return departmentResult || null;
     }
     static async getDepartmentByName(name) {
         const snapshot = await admin.firestore()
             .collection(this.collection)
-            .where('name', '==', name)
+            .where("name", "==", name)
             .withConverter(department_model_1.departmentConverter)
             .limit(1)
             .get();
@@ -49,28 +52,28 @@ class DepartmentService {
         // Verificar si hay departamentos hijos activos
         const hasActiveChildren = await this.hasActiveChildren(departmentId);
         if (hasActiveChildren) {
-            throw new Error('No se puede desactivar el departamento porque tiene departamentos hijos activos');
+            throw new Error("No se puede desactivar el departamento porque tiene departamentos hijos activos");
         }
         // Verificar si hay usuarios en el departamento
         const hasUsers = await this.hasUsers(departmentId);
         if (hasUsers) {
-            throw new Error('No se puede desactivar el departamento porque tiene usuarios asignados');
+            throw new Error("No se puede desactivar el departamento porque tiene usuarios asignados");
         }
         await this.updateDepartment(departmentId, {
             isActive: false,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
     }
     static async deleteDepartment(departmentId) {
         // Verificar si hay departamentos hijos
         const hasChildren = await this.hasChildren(departmentId);
         if (hasChildren) {
-            throw new Error('No se puede eliminar el departamento porque tiene departamentos hijos');
+            throw new Error("No se puede eliminar el departamento porque tiene departamentos hijos");
         }
         // Verificar si hay usuarios en el departamento
         const hasUsers = await this.hasUsers(departmentId);
         if (hasUsers) {
-            throw new Error('No se puede eliminar el departamento porque tiene usuarios asignados');
+            throw new Error("No se puede eliminar el departamento porque tiene usuarios asignados");
         }
         await admin.firestore()
             .collection(this.collection)
@@ -82,21 +85,21 @@ class DepartmentService {
             .collection(this.collection)
             .withConverter(department_model_1.departmentConverter);
         if (filters.isActive !== undefined) {
-            query = query.where('isActive', '==', filters.isActive);
+            query = query.where("isActive", "==", filters.isActive);
         }
         if (filters.parentId !== undefined) {
-            query = query.where('parentId', '==', filters.parentId);
+            query = query.where("parentId", "==", filters.parentId);
         }
         if (filters.limit) {
             query = query.limit(filters.limit);
         }
         const snapshot = await query.get();
-        return snapshot.docs.map(doc => doc.data());
+        return snapshot.docs.map((doc) => doc.data());
     }
     static async getChildDepartments(departmentId) {
         return this.listDepartments({
             parentId: departmentId,
-            isActive: true
+            isActive: true,
         });
     }
     static async getParentDepartment(departmentId) {
@@ -109,7 +112,7 @@ class DepartmentService {
     static async getDepartmentTree(departmentId) {
         const department = await this.getDepartment(departmentId);
         if (!department) {
-            throw new Error('Departamento no encontrado');
+            throw new Error("Departamento no encontrado");
         }
         const tree = [department];
         let current = department;
@@ -129,7 +132,7 @@ class DepartmentService {
             const currentId = queue.shift();
             const children = await this.listDepartments({
                 parentId: currentId,
-                isActive: true
+                isActive: true,
             });
             for (const child of children) {
                 descendants.push(child);
@@ -141,7 +144,7 @@ class DepartmentService {
     static async hasChildren(departmentId) {
         const snapshot = await admin.firestore()
             .collection(this.collection)
-            .where('parentId', '==', departmentId)
+            .where("parentId", "==", departmentId)
             .limit(1)
             .get();
         return !snapshot.empty;
@@ -149,42 +152,42 @@ class DepartmentService {
     static async hasActiveChildren(departmentId) {
         const snapshot = await admin.firestore()
             .collection(this.collection)
-            .where('parentId', '==', departmentId)
-            .where('isActive', '==', true)
+            .where("parentId", "==", departmentId)
+            .where("isActive", "==", true)
             .limit(1)
             .get();
         return !snapshot.empty;
     }
     static async hasUsers(departmentId) {
         const snapshot = await admin.firestore()
-            .collection('users')
-            .where('departmentId', '==', departmentId)
+            .collection("users")
+            .where("departmentId", "==", departmentId)
             .limit(1)
             .get();
         return !snapshot.empty;
     }
     static async moveDepartment(departmentId, newParentId) {
         if (departmentId === newParentId) {
-            throw new Error('Un departamento no puede ser padre de sí mismo');
+            throw new Error("Un departamento no puede ser padre de sí mismo");
         }
         if (newParentId) {
             // Verificar que el nuevo padre existe
             const parent = await this.getDepartment(newParentId);
             if (!parent) {
-                throw new Error('El departamento padre especificado no existe');
+                throw new Error("El departamento padre especificado no existe");
             }
             // Verificar que no se cree una referencia circular
             const descendants = await this.getAllDescendants(departmentId);
-            if (descendants.some(d => d.id === newParentId)) {
-                throw new Error('No se puede mover un departamento dentro de uno de sus descendientes');
+            if (descendants.some((d) => d.id === newParentId)) {
+                throw new Error("No se puede mover un departamento dentro de uno de sus descendientes");
             }
         }
         await this.updateDepartment(departmentId, {
             parentId: newParentId,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
     }
 }
 exports.DepartmentService = DepartmentService;
-DepartmentService.collection = 'departments';
+DepartmentService.collection = "departments";
 //# sourceMappingURL=department.service.js.map

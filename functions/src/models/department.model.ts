@@ -1,4 +1,4 @@
-import * as admin from 'firebase-admin';
+import * as admin from "firebase-admin";
 
 export interface Department {
   id: string;
@@ -10,14 +10,14 @@ export interface Department {
   updatedAt: admin.firestore.Timestamp | admin.firestore.FieldValue;
 }
 
-export type CreateDepartment = Omit<Department, 'id' | 'createdAt' | 'updatedAt'> & {
+export type CreateDepartment = Omit<Department, "id" | "createdAt" | "updatedAt"> & {
   createdAt: admin.firestore.FieldValue;
   updatedAt: admin.firestore.FieldValue;
 };
 
 export const departmentConverter = {
   toFirestore: (department: Partial<Department>) => {
-    const data: any = { ...department };
+    const data: any = {...department};
     delete data.id;
     return data;
   },
@@ -30,7 +30,7 @@ export const departmentConverter = {
       parentId: data.parentId || null,
       isActive: data.isActive !== undefined ? data.isActive : true,
       createdAt: data.createdAt,
-      updatedAt: data.updatedAt
+      updatedAt: data.updatedAt,
     };
-  }
+  },
 };

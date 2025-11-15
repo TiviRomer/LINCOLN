@@ -16,8 +16,8 @@ exports.departmentConverter = {
             parentId: data.parentId || null,
             isActive: data.isActive !== undefined ? data.isActive : true,
             createdAt: data.createdAt,
-            updatedAt: data.updatedAt
+            updatedAt: data.updatedAt,
         };
-    }
+    },
 };
 //# sourceMappingURL=department.model.js.map

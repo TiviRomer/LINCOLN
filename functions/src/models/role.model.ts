@@ -1,4 +1,4 @@
-import * as admin from 'firebase-admin';
+import * as admin from "firebase-admin";
 
 export interface Permission {
   resource: string;
@@ -15,14 +15,14 @@ export interface Role {
   updatedAt: admin.firestore.Timestamp | admin.firestore.FieldValue;
 }
 
-export type CreateRole = Omit<Role, 'id' | 'createdAt' | 'updatedAt'> & {
+export type CreateRole = Omit<Role, "id" | "createdAt" | "updatedAt"> & {
   createdAt: admin.firestore.FieldValue;
   updatedAt: admin.firestore.FieldValue;
 };
 
 export const roleConverter = {
   toFirestore: (role: Partial<Role>) => {
-    const data: any = { ...role };
+    const data: any = {...role};
     delete data.id;
     return data;
   },
@@ -35,7 +35,7 @@ export const roleConverter = {
       permissions: data.permissions || [],
       isSystem: data.isSystem || false,
       createdAt: data.createdAt,
-      updatedAt: data.updatedAt
+      updatedAt: data.updatedAt,
     };
-  }
+  },
 };

@@ -20,8 +20,8 @@ exports.userConverter = {
             isActive: data.isActive,
             lastLogin: data.lastLogin,
             createdAt: data.createdAt,
-            updatedAt: data.updatedAt
+            updatedAt: data.updatedAt,
         };
-    }
+    },
 };
 //# sourceMappingURL=user.model.js.map

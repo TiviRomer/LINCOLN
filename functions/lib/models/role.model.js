@@ -16,8 +16,8 @@ exports.roleConverter = {
             permissions: data.permissions || [],
             isSystem: data.isSystem || false,
             createdAt: data.createdAt,
-            updatedAt: data.updatedAt
+            updatedAt: data.updatedAt,
         };
-    }
+    },
 };
 //# sourceMappingURL=role.model.js.map

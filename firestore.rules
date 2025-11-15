@@ -23,6 +23,18 @@ service cloud.firestore {
     match /servers/{serverId} {
       allow read: if true;
       allow write: if true;
+      
+      // Subcolección de métricas
+      match /metrics/{metricId} {
+        allow read: if true;
+        allow write: if true;
+      }
+    }
+    
+    // Reglas para incidentes
+    match /incidents/{incidentId} {
+      allow read: if true;
+      allow write: if true;
     }
 
     // Reglas para alertas

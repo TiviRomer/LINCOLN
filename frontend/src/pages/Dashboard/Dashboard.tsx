@@ -52,27 +52,49 @@ const Dashboard: React.FC = () => {
   // Cargar datos iniciales y configurar listeners en tiempo real
   useEffect(() => {
     console.log('🔄 Cargando datos del Dashboard desde Firestore...');
+    console.log('📍 URL actual:', window.location.href);
     
     let mounted = true;
+    
+    // Cargar datos iniciales primero
+    const loadInitialData = async () => {
+      try {
+        console.log('📥 Cargando datos iniciales...');
+        const [initialServers, initialAlerts] = await Promise.all([
+          firestoreService.servers.getAll(),
+          firestoreService.alerts.getAll(),
+        ]);
+        
+        if (mounted) {
+          console.log(`✅ Datos iniciales cargados: ${initialServers.length} servidores, ${initialAlerts.length} alertas`);
+          setServers(initialServers);
+          setAlerts(initialAlerts);
+        }
+      } catch (error) {
+        console.error('❌ Error cargando datos iniciales:', error);
+      }
+    };
+    
+    loadInitialData();
     
     // Listeners en tiempo real
     const unsubscribeServers = firestoreService.servers.onServersChange((newServers) => {
       if (mounted) {
-        console.log(`📡 Servidores actualizados: ${newServers.length}`);
+        console.log(`📡 Servidores actualizados en tiempo real: ${newServers.length}`);
         setServers(newServers);
       }
     });
 
     const unsubscribeAlerts = firestoreService.alerts.onAlertsChange((newAlerts) => {
       if (mounted) {
-        console.log(`📡 Alertas actualizadas: ${newAlerts.length}`);
+        console.log(`📡 Alertas actualizadas en tiempo real: ${newAlerts.length}`);
         setAlerts(newAlerts);
       }
     });
 
     const unsubscribeThreats = firestoreService.threats.onThreatsChange((newThreats) => {
       if (mounted) {
-        console.log(`📡 Amenazas actualizadas: ${newThreats.length}`);
+        console.log(`📡 Amenazas actualizadas en tiempo real: ${newThreats.length}`);
         setThreats(newThreats);
       }
     });
@@ -165,9 +187,22 @@ const Dashboard: React.FC = () => {
   };
 
   const handleQuickAction = {
-    runScan: () => {
-      console.log('Run security scan');
-      // TODO: Implement API call
+    runScan: async () => {
+      try {
+        console.log('🔍 Ejecutando detección manual...');
+        const result = await firestoreService.detection.runManualDetection();
+        
+        if (result.success) {
+          console.log('✅ Detección manual ejecutada:', result.message);
+          alert(`✅ ${result.message}\n\nLas alertas se actualizarán automáticamente en unos segundos.`);
+        } else {
+          console.error('❌ Error en detección manual:', result.message);
+          alert(`❌ Error: ${result.message}\n\nAsegúrate de que las Firebase Functions estén corriendo.`);
+        }
+      } catch (error: any) {
+        console.error('❌ Error ejecutando detección manual:', error);
+        alert(`❌ Error inesperado: ${error.message}`);
+      }
     },
     generateReport: () => {
       console.log('Generate report');
