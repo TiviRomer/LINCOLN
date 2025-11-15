@@ -1,0 +1,80 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Cybersecurity Blue & Green Theme */
+  --primary-blue: #0066ff;
+  --primary-cyan: #00d4ff;
+  --primary-green: #00ff88;
+  --dark-bg: #0a1929;
+  --darker-bg: #051422;
+  --card-bg: rgba(10, 25, 41, 0.95);
+  --border-color: rgba(0, 212, 255, 0.2);
+  --text-primary: #ffffff;
+  --text-secondary: #b0bec5;
+  --text-muted: #78909c;
+  --error-color: #ff5252;
+  --success-color: #00ff88;
+  --warning-color: #ffb74d;
+  
+  /* Shadows */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 8px rgba(0, 212, 255, 0.2);
+  --shadow-lg: 0 8px 16px rgba(0, 212, 255, 0.3);
+  --shadow-xl: 0 16px 32px rgba(0, 255, 136, 0.2);
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.3s ease;
+  --transition-slow: 0.5s ease;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--dark-bg);
+  color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--darker-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-cyan);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-green);
+}
+
+/* Selection styling */
+::selection {
+  background: var(--primary-cyan);
+  color: var(--dark-bg);
+}
+
+::-moz-selection {
+  background: var(--primary-cyan);
+  color: var(--dark-bg);
+}
+
