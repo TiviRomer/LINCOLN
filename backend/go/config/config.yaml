@@ -1,0 +1,179 @@
+# Configuración de la aplicación
+app:
+  name: "LINCOLN Security"
+  version: "0.1.0"
+  environment: "development"  # development, staging, production
+  port: 8080
+  log_level: "debug"  # debug, info, warn, error
+
+# Configuración de Firebase
+firebase:
+  project_id: "your-project-id"
+  credentials_file: "config/firebase-credentials.json"
+  database_url: "https://your-project-id.firebaseio.com"
+  storage_bucket: "your-project-id.appspot.com"
+
+# Configuración de seguridad
+security:
+  jwt_secret: "your-jwt-secret-key-here"
+  password_salt_rounds: 10
+  cors_allowed_origins:
+    - "http://localhost:3000"
+    - "https://your-domain.com"
+
+# Configuración de la base de datos
+database:
+  host: "localhost"
+  port: 5432
+  name: "lincoln"
+  user: "postgres"
+  password: "your-db-password"
+  ssl_mode: "disable"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: "5m"
+
+# Configuración de Redis (para caché y colas)
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 10
+
+# Configuración de monitoreo
+monitoring:
+  enabled: true
+  port: 9090
+  metrics_path: "/metrics"
+  health_check_path: "/health"
+
+# Configuración de logs
+logging:
+  level: "info"
+  format: "json"  # json, text
+  file_path: "logs/lincoln.log"
+  max_size: 100  # MB
+  max_backups: 3
+  max_age: 30  # days
+  compress: true
+
+# Configuración de correo electrónico
+email:
+  enabled: false
+  host: "smtp.example.com"
+  port: 587
+  username: "user@example.com"
+  password: "your-email-password"
+  from: "no-reply@lincoln.security"
+  tls: true
+
+# Configuración de notificaciones
+notifications:
+  email_enabled: false
+  slack_enabled: false
+  slack_webhook_url: ""
+  admin_email: "admin@example.com"
+
+# Configuración de tareas programadas
+scheduler:
+  cleanup_old_logs: "0 0 * * *"  # Ejecutar a medianoche cada día
+  backup_database: "0 2 * * *"    # Ejecutar a las 2 AM cada día
+
+# Configuración de características
+features:
+  enable_rate_limiting: true
+  enable_maintenance_mode: false
+  enable_api_docs: true
+  enable_swagger: true
+
+# Configuración de caché
+cache:
+  enabled: true
+  ttl: "5m"
+  cleanup_interval: "10m"
+
+# Configuración de la API
+auth:
+  token_expiration: "24h"
+  refresh_token_expiration: "720h"  # 30 días
+  api_key_header: "X-API-Key"
+  token_lookup: "header:Authorization"
+  token_head_name: "Bearer"
+
+# Configuración de la aplicación web
+web:
+  session_secret: "your-session-secret"
+  csrf_secret: "your-csrf-secret"
+  secure_cookies: false
+  http_only: true
+  same_site: "Lax"
+
+# Configuración de la red
+server:
+  read_timeout: "10s"
+  write_timeout: "10s"
+  idle_timeout: "120s"
+  shutdown_timeout: "10s"
+  tls_enabled: false
+  tls_cert_file: ""
+  tls_key_file: ""
+
+# Configuración de la base de datos de series temporales (opcional)
+timeseries_db:
+  enabled: false
+  type: "influxdb"  # influxdb, timescaledb
+  host: "localhost"
+  port: 8086
+  database: "lincoln_metrics"
+  username: ""
+  password: ""
+  retention_policy: "30d"
+
+# Configuración de la cola de mensajes (opcional)
+message_queue:
+  enabled: false
+  type: "nats"  # nats, redis, kafka
+  url: "nats://localhost:4222"
+  cluster_id: "lincoln-cluster"
+  client_id: "lincoln-server"
+  durable_name: "lincoln-durable"
+  max_reconnect: 10
+  reconnect_wait: "1s"
+
+# Configuración de almacenamiento de archivos
+storage:
+  type: "local"  # local, s3, gcs, azure
+  local_path: "./storage"
+  max_upload_size: "10MB"
+  allowed_mime_types:
+    - "image/jpeg"
+    - "image/png"
+    - "application/pdf"
+    - "text/plain"
+    - "application/octet-stream"
+
+# Configuración de autenticación de terceros
+oauth:
+  google:
+    enabled: false
+    client_id: ""
+    client_secret: ""
+    redirect_url: ""
+  microsoft:
+    enabled: false
+    client_id: ""
+    client_secret: ""
+    tenant_id: ""
+    redirect_url: ""
+
+audit_log:
+  enabled: true
+  level: "info"  # debug, info, warn, error
+  format: "json"
+  output: "file"  # file, stdout, both
+  file_path: "logs/audit.log"
+  max_size: 100  # MB
+  max_backups: 10
+  max_age: 90  # days
+  compress: true

@@ -1,0 +1,148 @@
+# Binarios
+/bin/
+/lincoln
+/lincoln.exe
+
+# Archivos de configuración local
+/configs/config.toml
+
+# Archivos de entorno local
+.env
+.env.local
+
+# Directorios de dependencias
+/vendor/
+
+# Archivos de IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Archivos de log
+*.log
+/logs/
+
+# Archivos temporales
+*.tmp
+*.temp
+
+# Archivos de sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de compilación
+/build/
+
+# Archivos de cobertura
+/coverage/
+*.out
+
+# Archivos de desarrollo
+debug
+
+# Archivos de configuración de Go
+/go.sum
+
+# Archivos de bases de datos locales
+*.db
+*.sqlite3
+
+# Archivos de configuración de Docker
+.dockerignore
+Dockerfile
+.docker/
+
+# Archivos de Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+
+# Archivos de desarrollo local
+.local/
+
+# Archivos de configuración de VS Code
+.vscode/
+
+# Archivos de configuración de GoLand
+.idea/
+*.iml
+
+# Archivos de configuración de Vim
+*.swp
+*.swo
+
+# Archivos de configuración de Emacs
+*~
+\#*\#
+
+# Archivos de configuración de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos de configuración de Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos de configuración de Windows
+[Dd]esktop.ini
+
+# Archivos de configuración de Mac
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Archivos de configuración de Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Archivos de configuración de Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Archivos de configuración de Go
+*.test
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Archivos de configuración de pruebas
+testdata/
+*.test
+
+# Archivos de configuración de depuración
+debug/
+
+# Archivos de configuración de documentación
+/docs/_build/
+/site/
+
+# Archivos de configuración de Docker Compose
+docker-compose.override.yml
+
+# Archivos de configuración de Kubernetes
+k8s/
+
+# Archivos de configuración de Helm
+charts/
+
+# Archivos de configuración de Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Archivos de configuración de Vault
+.vault/
