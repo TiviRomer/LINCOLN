@@ -1,0 +1,249 @@
+.server-status-grid {
+  background: linear-gradient(135deg, rgba(17, 34, 64, 0.8) 0%, rgba(10, 25, 41, 0.8) 100%);
+  border: 1px solid rgba(0, 212, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #ffffff;
+      margin: 0;
+    }
+
+    .group-select {
+      padding: 0.5rem 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(0, 212, 255, 0.2);
+      border-radius: 6px;
+      color: #ffffff;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      &:focus {
+        outline: none;
+        border-color: rgba(0, 212, 255, 0.5);
+      }
+
+      option {
+        background: #0a1929;
+        color: #ffffff;
+      }
+    }
+  }
+
+  .servers-container {
+    .server-group {
+      margin-bottom: 2rem;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .group-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: rgba(0, 212, 255, 1);
+        margin: 0 0 1rem 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+      }
+
+      .servers-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+
+        .server-card {
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(0, 212, 255, 0.1);
+          border-radius: 10px;
+          padding: 1.25rem;
+          transition: all 0.3s ease;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(0, 212, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 255, 0.1);
+          }
+
+          &[data-status='offline'] {
+            opacity: 0.7;
+          }
+
+          .server-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+
+            .server-status-indicator {
+              width: 12px;
+              height: 12px;
+              border-radius: 50%;
+              box-shadow: 0 0 8px currentColor;
+              flex-shrink: 0;
+            }
+
+            .server-info {
+              flex: 1;
+              min-width: 0;
+
+              .server-name {
+                font-size: 1rem;
+                font-weight: 600;
+                color: #ffffff;
+                margin: 0 0 0.25rem 0;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              }
+
+              .server-ip {
+                font-size: 0.75rem;
+                color: rgba(255, 255, 255, 0.5);
+              }
+            }
+          }
+
+          .server-health {
+            margin-bottom: 1rem;
+
+            .health-metric {
+              margin-bottom: 0.75rem;
+
+              &:last-child {
+                margin-bottom: 0;
+              }
+
+              .metric-label {
+                display: block;
+                font-size: 0.75rem;
+                color: rgba(255, 255, 255, 0.6);
+                margin-bottom: 0.25rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+              }
+
+              .metric-bar {
+                position: relative;
+                width: 100%;
+                height: 20px;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 10px;
+                overflow: hidden;
+
+                .metric-fill {
+                  position: absolute;
+                  top: 0;
+                  left: 0;
+                  height: 100%;
+                  border-radius: 10px;
+                  transition: width 0.3s ease;
+
+                  &.cpu {
+                    background: linear-gradient(90deg, #00d4ff 0%, #00ff88 100%);
+                  }
+
+                  &.memory {
+                    background: linear-gradient(90deg, #ffaa00 0%, #ffd93d 100%);
+                  }
+
+                  &.disk {
+                    background: linear-gradient(90deg, #8a2be2 0%, #9370db 100%);
+                  }
+                }
+
+                .metric-value {
+                  position: absolute;
+                  top: 50%;
+                  left: 50%;
+                  transform: translate(-50%, -50%);
+                  font-size: 0.75rem;
+                  font-weight: 600;
+                  color: #ffffff;
+                  z-index: 1;
+                }
+              }
+            }
+          }
+
+          .server-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(0, 212, 255, 0.1);
+            margin-bottom: 1rem;
+
+            .server-location {
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+              font-size: 0.75rem;
+              color: rgba(255, 255, 255, 0.6);
+
+              svg {
+                width: 14px;
+                height: 14px;
+              }
+            }
+
+            .server-last-activity {
+              font-size: 0.75rem;
+              color: rgba(255, 255, 255, 0.5);
+            }
+          }
+
+          .server-actions {
+            display: flex;
+            gap: 0.5rem;
+
+            .action-button {
+              flex: 1;
+              padding: 0.5rem;
+              background: rgba(255, 255, 255, 0.05);
+              border: 1px solid rgba(0, 212, 255, 0.1);
+              border-radius: 6px;
+              color: rgba(0, 212, 255, 0.8);
+              cursor: pointer;
+              transition: all 0.3s ease;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+
+              svg {
+                width: 18px;
+                height: 18px;
+              }
+
+              &:hover {
+                background: rgba(0, 212, 255, 0.1);
+                border-color: rgba(0, 212, 255, 0.3);
+                color: rgba(0, 212, 255, 1);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .server-status-grid {
+    .servers-container .server-group .servers-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+

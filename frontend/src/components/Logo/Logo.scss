@@ -1,0 +1,90 @@
+.logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
+
+  .logo-image {
+    filter: drop-shadow(0 4px 8px rgba(0, 212, 255, 0.3));
+    animation: pulse 3s ease-in-out infinite;
+    object-fit: contain;
+  }
+
+  .logo-svg {
+    filter: drop-shadow(0 4px 8px rgba(0, 212, 255, 0.3));
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  .logo-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-top: 1rem;
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+  }
+
+  .logo-subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: #64b5f6;
+    letter-spacing: 0.1em;
+    margin-top: 0.5rem;
+    opacity: 0.8;
+  }
+
+  &.logo-small {
+    .logo-image,
+    .logo-svg {
+      width: 60px;
+      height: 60px;
+    }
+    .logo-text {
+      font-size: 1.5rem;
+    }
+    .logo-subtitle {
+      font-size: 0.75rem;
+    }
+  }
+
+  &.logo-medium {
+    .logo-image,
+    .logo-svg {
+      width: 100px;
+      height: 100px;
+    }
+    .logo-text {
+      font-size: 2.5rem;
+    }
+  }
+
+  &.logo-large {
+    .logo-image,
+    .logo-svg {
+      width: 150px;
+      height: 150px;
+    }
+    .logo-text {
+      font-size: 3.5rem;
+    }
+    .logo-subtitle {
+      font-size: 1rem;
+    }
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    filter: drop-shadow(0 4px 8px rgba(0, 212, 255, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 4px 16px rgba(0, 255, 136, 0.5));
+  }
+}
+
