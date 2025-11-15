@@ -3,8 +3,7 @@ import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 import * as Joi from 'joi';
 
-// Inicializa la aplicación de Firebase
-admin.initializeApp();
+// NO inicializar aquí - ya se inicializa en index.ts
 
 // Logger personalizado
 const logger = {

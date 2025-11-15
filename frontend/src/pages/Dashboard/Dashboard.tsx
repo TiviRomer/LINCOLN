@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import Header from '../../components/Layout/Header/Header';
 import Sidebar from '../../components/Layout/Sidebar/Sidebar';
 import OverviewCards from '../../components/Dashboard/OverviewCards/OverviewCards';
@@ -15,220 +16,142 @@ import {
   Alert,
   SystemHealth as SystemHealthType,
 } from '../../types/dashboard';
+import firestoreService from '../../services/firestore.service';
 import './Dashboard.scss';
-
-// Mock data - Replace with actual API calls
-const generateMockData = () => {
-  const mockThreats: Threat[] = [
-    {
-      id: '1',
-      type: 'ransomware',
-      severity: 'critical',
-      serverId: 'srv-001',
-      serverName: 'Servidor Principal',
-      description: 'Intento de cifrado de archivos detectado en directorio /var/www',
-      timestamp: new Date(Date.now() - 5 * 60000),
-      status: 'detected',
-    },
-    {
-      id: '2',
-      type: 'intrusion',
-      severity: 'high',
-      serverId: 'srv-002',
-      serverName: 'Servidor de Base de Datos',
-      description: 'Conexión no autorizada desde IP 192.168.1.100',
-      timestamp: new Date(Date.now() - 15 * 60000),
-      status: 'investigating',
-    },
-    {
-      id: '3',
-      type: 'data_leak',
-      severity: 'medium',
-      serverId: 'srv-003',
-      serverName: 'Servidor de Archivos',
-      description: 'Intento de transferencia masiva de datos detectado',
-      timestamp: new Date(Date.now() - 30 * 60000),
-      status: 'detected',
-    },
-    {
-      id: '4',
-      type: 'anomalous_behavior',
-      severity: 'low',
-      serverId: 'srv-001',
-      serverName: 'Servidor Principal',
-      description: 'Actividad de CPU inusual detectada',
-      timestamp: new Date(Date.now() - 45 * 60000),
-      status: 'detected',
-    },
-  ];
-
-  const mockServers: Server[] = [
-    {
-      id: 'srv-001',
-      name: 'Servidor Principal',
-      ip: '192.168.1.10',
-      status: 'online',
-      location: 'Centro de Datos A',
-      department: 'IT',
-      cpuUsage: 45,
-      memoryUsage: 62,
-      diskUsage: 38,
-      lastActivity: new Date(Date.now() - 2 * 60000),
-      tags: ['production', 'critical'],
-    },
-    {
-      id: 'srv-002',
-      name: 'Servidor de Base de Datos',
-      ip: '192.168.1.11',
-      status: 'online',
-      location: 'Centro de Datos A',
-      department: 'IT',
-      cpuUsage: 78,
-      memoryUsage: 85,
-      diskUsage: 45,
-      lastActivity: new Date(Date.now() - 1 * 60000),
-      tags: ['production', 'database'],
-    },
-    {
-      id: 'srv-003',
-      name: 'Servidor de Archivos',
-      ip: '192.168.1.12',
-      status: 'warning',
-      location: 'Centro de Datos B',
-      department: 'IT',
-      cpuUsage: 92,
-      memoryUsage: 88,
-      diskUsage: 78,
-      lastActivity: new Date(Date.now() - 5 * 60000),
-      tags: ['production'],
-    },
-    {
-      id: 'srv-004',
-      name: 'Servidor de Desarrollo',
-      ip: '192.168.1.13',
-      status: 'online',
-      location: 'Centro de Datos B',
-      department: 'Desarrollo',
-      cpuUsage: 25,
-      memoryUsage: 40,
-      diskUsage: 55,
-      lastActivity: new Date(Date.now() - 10 * 60000),
-      tags: ['development'],
-    },
-  ];
-
-  const mockAlerts: Alert[] = [
-    {
-      id: 'alert-001',
-      type: 'ransomware',
-      severity: 'critical',
-      serverId: 'srv-001',
-      serverName: 'Servidor Principal',
-      title: 'Intento de Ransomware Detectado',
-      description: 'Proceso sospechoso intentando cifrar archivos en /var/www',
-      timestamp: new Date(Date.now() - 5 * 60000),
-      status: 'active',
-    },
-    {
-      id: 'alert-002',
-      type: 'intrusion',
-      severity: 'high',
-      serverId: 'srv-002',
-      serverName: 'Servidor de Base de Datos',
-      title: 'Intento de Intrusión',
-      description: 'Múltiples intentos de acceso fallidos desde IP externa',
-      timestamp: new Date(Date.now() - 15 * 60000),
-      status: 'acknowledged',
-    },
-    {
-      id: 'alert-003',
-      type: 'data_leak',
-      severity: 'medium',
-      serverId: 'srv-003',
-      serverName: 'Servidor de Archivos',
-      title: 'Posible Filtración de Datos',
-      description: 'Transferencia masiva de archivos detectada',
-      timestamp: new Date(Date.now() - 30 * 60000),
-      status: 'active',
-    },
-  ];
-
-  const mockOverview: OverviewMetrics = {
-    securityStatus: 'warning',
-    activeThreats: mockThreats.length,
-    totalServers: mockServers.length,
-    onlineServers: mockServers.filter((s) => s.status === 'online').length,
-    offlineServers: mockServers.filter((s) => s.status === 'offline').length,
-    recentIncidents24h: 5,
-    recentIncidents7d: 12,
-    systemUptime: 99.8,
-    lastScan: new Date(Date.now() - 30 * 60000),
-  };
-
-  const mockSystemHealth: SystemHealthType = {
-    backendStatus: 'healthy',
-    databaseStatus: 'connected',
-    apiResponseTime: 45,
-    connectedAgents: 8,
-    totalAgents: 10,
-    lastHeartbeat: new Date(Date.now() - 1 * 60000),
-    storageUsage: 65,
-    logRetentionDays: 30,
-  };
-
-  return {
-    threats: mockThreats,
-    servers: mockServers,
-    alerts: mockAlerts,
-    overview: mockOverview,
-    systemHealth: mockSystemHealth,
-  };
-};
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [refreshInterval, setRefreshInterval] = useState<number>(30000); // 30 seconds
+  const { currentUser, userProfile, logout } = useAuth();
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const [mockData, setMockData] = useState(generateMockData());
+  
+  // Estados para datos reales de Firestore
+  const [servers, setServers] = useState<Server[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [threats, setThreats] = useState<Threat[]>([]);
+  const [overview, setOverview] = useState<OverviewMetrics>({
+    securityStatus: 'good',
+    activeThreats: 0,
+    totalServers: 0,
+    onlineServers: 0,
+    offlineServers: 0,
+    recentIncidents24h: 0,
+    recentIncidents7d: 0,
+    systemUptime: 99.8,
+    lastScan: new Date(),
+  });
+  const [loading, setLoading] = useState(true);
 
-  // Mock user data - Replace with actual auth context
+  // User data from Firebase Auth
   const user = {
-    name: 'Juan Pérez',
-    email: 'juan.perez@example.com',
-    role: 'admin',
-    avatar: undefined,
+    name: userProfile?.displayName || currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Usuario',
+    email: currentUser?.email || '',
+    role: userProfile?.role || 'user',
+    avatar: currentUser?.photoURL || undefined,
   };
 
+  // Cargar datos iniciales y configurar listeners en tiempo real
   useEffect(() => {
-    // Simulate real-time updates
-    const interval = setInterval(() => {
-      setMockData(generateMockData());
-    }, refreshInterval);
+    console.log('🔄 Cargando datos del Dashboard desde Firestore...');
+    
+    let mounted = true;
+    
+    // Listeners en tiempo real
+    const unsubscribeServers = firestoreService.servers.onServersChange((newServers) => {
+      if (mounted) {
+        console.log(`📡 Servidores actualizados: ${newServers.length}`);
+        setServers(newServers);
+      }
+    });
 
-    return () => clearInterval(interval);
-  }, [refreshInterval]);
+    const unsubscribeAlerts = firestoreService.alerts.onAlertsChange((newAlerts) => {
+      if (mounted) {
+        console.log(`📡 Alertas actualizadas: ${newAlerts.length}`);
+        setAlerts(newAlerts);
+      }
+    });
 
-  const handleLogout = () => {
-    // TODO: Implement actual logout logic
-    navigate('/login');
+    const unsubscribeThreats = firestoreService.threats.onThreatsChange((newThreats) => {
+      if (mounted) {
+        console.log(`📡 Amenazas actualizadas: ${newThreats.length}`);
+        setThreats(newThreats);
+      }
+    });
+
+    // Cargar métricas iniciales
+    firestoreService.stats.calculateOverview()
+      .then((metrics) => {
+        if (mounted) {
+          setOverview(metrics);
+          setLoading(false);
+          console.log('✅ Datos del Dashboard cargados');
+        }
+      })
+      .catch((error) => {
+        console.error('❌ Error al cargar métricas:', error);
+        if (mounted) {
+          setLoading(false);
+        }
+      });
+
+    // Actualizar métricas cada 30 segundos
+    const metricsInterval = setInterval(() => {
+      if (mounted) {
+        firestoreService.stats.calculateOverview()
+          .then((metrics) => {
+            if (mounted) setOverview(metrics);
+          })
+          .catch((error) => console.error('Error actualizando métricas:', error));
+      }
+    }, 30000);
+
+    // Cleanup: desuscribirse de todos los listeners
+    return () => {
+      mounted = false;
+      unsubscribeServers();
+      unsubscribeAlerts();
+      unsubscribeThreats();
+      clearInterval(metricsInterval);
+      console.log('🔄 Listeners de Dashboard desconectados');
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
   };
 
   const handleAlertAction = {
-    acknowledge: (id: string) => {
-      console.log('Acknowledge alert:', id);
-      // TODO: Implement API call
+    acknowledge: async (id: string) => {
+      try {
+        await firestoreService.alerts.updateStatus(id, 'acknowledged');
+        console.log('✅ Alerta reconocida:', id);
+      } catch (error) {
+        console.error('❌ Error al reconocer alerta:', error);
+      }
     },
     investigate: (id: string) => {
-      console.log('Investigate alert:', id);
+      console.log('🔍 Investigando alerta:', id);
       navigate(`/incidents?alert=${id}`);
     },
-    resolve: (id: string) => {
-      console.log('Resolve alert:', id);
-      // TODO: Implement API call
+    resolve: async (id: string) => {
+      try {
+        await firestoreService.alerts.updateStatus(id, 'resolved');
+        console.log('✅ Alerta resuelta:', id);
+      } catch (error) {
+        console.error('❌ Error al resolver alerta:', error);
+      }
     },
-    escalate: (id: string) => {
-      console.log('Escalate alert:', id);
-      // TODO: Implement API call
+    escalate: async (id: string) => {
+      try {
+        await firestoreService.alerts.updateStatus(id, 'escalated');
+        console.log('⬆️ Alerta escalada:', id);
+      } catch (error) {
+        console.error('❌ Error al escalar alerta:', error);
+      }
     },
   };
 
@@ -261,28 +184,53 @@ const Dashboard: React.FC = () => {
     },
   };
 
+  // SystemHealth mock (por ahora, hasta tener backend)
+  const systemHealth: SystemHealthType = {
+    backendStatus: 'healthy',
+    databaseStatus: 'connected',
+    apiResponseTime: 45,
+    connectedAgents: servers.filter(s => s.status === 'online').length,
+    totalAgents: servers.length,
+    lastHeartbeat: new Date(),
+    storageUsage: 65,
+    logRetentionDays: 30,
+  };
+
+  if (loading) {
+    return (
+      <div className="dashboard-container dark">
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'white' }}>
+          <div>
+            <div className="spinner" style={{ margin: '0 auto 20px', width: '50px', height: '50px' }}></div>
+            <p>Cargando Dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`dashboard-container ${isDarkMode ? 'dark' : 'light'}`}>
       <Header
         user={user}
-        notificationCount={mockData.alerts.filter((a) => a.status === 'active').length}
+        notificationCount={alerts.filter((a) => a.status === 'active').length}
         onLogout={handleLogout}
       />
       <div className="dashboard-content">
         <Sidebar userRole={user.role} />
         <main className="dashboard-main">
           <div className="dashboard-scrollable">
-            <OverviewCards metrics={mockData.overview} />
+            <OverviewCards metrics={overview} />
             
             <div className="dashboard-grid">
               <div className="dashboard-column main">
-                <ThreatMonitoring threats={mockData.threats} />
-                <ServerStatusGrid servers={mockData.servers} />
+                <ThreatMonitoring threats={threats} />
+                <ServerStatusGrid servers={servers} />
               </div>
               
               <div className="dashboard-column sidebar">
                 <ActiveAlerts
-                  alerts={mockData.alerts}
+                  alerts={alerts}
                   onAcknowledge={handleAlertAction.acknowledge}
                   onInvestigate={handleAlertAction.investigate}
                   onResolve={handleAlertAction.resolve}
@@ -296,7 +244,7 @@ const Dashboard: React.FC = () => {
                   onAddServer={handleQuickAction.addServer}
                   onEmergencyLockdown={handleQuickAction.emergencyLockdown}
                 />
-                <SystemHealth health={mockData.systemHealth} />
+                <SystemHealth health={systemHealth} />
               </div>
             </div>
 

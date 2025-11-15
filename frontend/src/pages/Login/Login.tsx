@@ -2,11 +2,12 @@ import React, { useState, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../../components/Logo/Logo';
 import { validateEmail } from '../../utils/validation';
-import apiService from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 import './Login.scss';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -16,6 +17,7 @@ const Login: React.FC = () => {
     password: '',
     general: '',
   });
+  const [rememberMe, setRememberMe] = useState(true); // Por defecto recordar sesión
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,28 +67,36 @@ const Login: React.FC = () => {
       return;
     }
 
-    // API call
+    // Firebase Authentication
     try {
-      const response = await apiService.login({
-        email: formData.email,
-        password: formData.password,
-      });
-
-      if (response.success) {
-        // Navigate to dashboard on successful login
-        navigate('/dashboard');
-      } else {
-        setErrors({
-          ...newErrors,
-          general: response.message || 'Error al iniciar sesión. Por favor, intenta nuevamente.',
-        });
+      await login(formData.email, formData.password, rememberMe);
+      // Navigate to dashboard on successful login
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Error de inicio de sesión:', error);
+      
+      // Manejar errores específicos de Firebase
+      let errorMessage = 'Error al iniciar sesión. Por favor, intenta nuevamente.';
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No existe una cuenta con este correo electrónico.';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Contraseña incorrecta.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Correo electrónico inválido.';
+      } else if (error.code === 'auth/user-disabled') {
+        errorMessage = 'Esta cuenta ha sido deshabilitada.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Demasiados intentos fallidos. Por favor, intenta más tarde.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Error de conexión. Verifica tu conexión a internet y que los emuladores de Firebase estén activos.';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
-    } catch (error) {
+      
       setErrors({
         ...newErrors,
-        general: error instanceof Error 
-          ? error.message 
-          : 'Error al iniciar sesión. Por favor, intenta nuevamente.',
+        general: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -152,7 +162,11 @@ const Login: React.FC = () => {
 
             <div className="form-options">
               <label className="checkbox-label">
-                <input type="checkbox" />
+                <input 
+                  type="checkbox" 
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
                 <span>Recordar sesión</span>
               </label>
               <Link to="/forgot-password" className="forgot-link">
