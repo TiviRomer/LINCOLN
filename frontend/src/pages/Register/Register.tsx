@@ -2,13 +2,14 @@ import React, { useState, FormEvent, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../../components/Logo/Logo';
 import { validateEmail, validatePassword } from '../../utils/validation';
-import apiService from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 import './Register.scss';
 
 type PasswordStrength = 'weak' | 'medium' | 'strong' | '';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
+  const { signup } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -135,38 +136,40 @@ const Register: React.FC = () => {
       return;
     }
 
-    // API call
+    // Firebase Authentication
     try {
-      const response = await apiService.register({
-        name: formData.name.trim(),
-        email: formData.email,
-        password: formData.password,
-      });
-
-      if (response.success) {
-        // Show success message
-        setSuccessMessage('¡Cuenta creada exitosamente! Redirigiendo...');
-        
-        // Navigate to login after a short delay
-        setTimeout(() => {
-          navigate('/login', { 
-            state: { 
-              message: 'Cuenta creada exitosamente. Por favor, inicia sesión.' 
-            } 
-          });
-        }, 1500);
-      } else {
-        setErrors({
-          ...newErrors,
-          general: response.message || 'Error al registrar. Por favor, intenta nuevamente.',
-        });
+      await signup(formData.email, formData.password, formData.name.trim());
+      
+      // Show success message
+      setSuccessMessage('¡Cuenta creada exitosamente! Redirigiendo al dashboard...');
+      
+      // Navigate to dashboard after a short delay
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1500);
+    } catch (error: any) {
+      console.error('Error de registro:', error);
+      
+      // Manejar errores específicos de Firebase
+      let errorMessage = 'Error al registrar. Por favor, intenta nuevamente.';
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Ya existe una cuenta con este correo electrónico.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Correo electrónico inválido.';
+      } else if (error.code === 'auth/operation-not-allowed') {
+        errorMessage = 'El registro de usuarios no está habilitado.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'La contraseña es muy débil. Usa al menos 6 caracteres.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Error de conexión. Verifica tu conexión a internet y que los emuladores de Firebase estén activos.';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
-    } catch (error) {
+      
       setErrors({
         ...newErrors,
-        general: error instanceof Error 
-          ? error.message 
-          : 'Error al registrar. Por favor, intenta nuevamente.',
+        general: errorMessage,
       });
     } finally {
       setIsLoading(false);

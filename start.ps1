@@ -1,136 +1,92 @@
-# Script de inicio para LINCOLN
-# Uso: .\start.ps1 [-Environment Development|Staging|Production]
+# LINCOLN - Script de Inicio Inteligente
+# Limpia procesos previos automaticamente y luego inicia el sistema
 
-param (
-    [ValidateSet('Development', 'Staging', 'Production')]
-    [string]$Environment = 'Development'
-)
+Write-Host ""
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "      INICIANDO LINCOLN v2.0           " -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "PERSISTENCIA DE DATOS: Activada" -ForegroundColor Green
+Write-Host "  Los datos se guardan en: ./emulator-data" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "IMPORTANTE: Para cerrar correctamente:" -ForegroundColor Yellow
+Write-Host "  1. Presiona Ctrl+C UNA SOLA VEZ" -ForegroundColor Yellow
+Write-Host "  2. ESPERA a que termine la exportacion" -ForegroundColor Yellow
+Write-Host "  3. Tus datos se guardaran automaticamente" -ForegroundColor Yellow
+Write-Host ""
 
-# Configuración
-$ErrorActionPreference = "Stop"
-$distDir = ".\dist"
-$apiExecutable = "$distDir\lincoln-api.exe"
-$frontendUrl = "http://localhost:3000"
-$apiUrl = "http://localhost:8080"
+# PASO 1: Limpieza automatica de procesos previos
+Write-Host "[*] Paso 1/2: Limpiando procesos previos..." -ForegroundColor Yellow
 
-# Verificar si el directorio dist existe
-if (-not (Test-Path -Path $distDir)) {
-    Write-Host "No se encontró el directorio de distribución. Ejecuta primero .\scripts\build\build.ps1" -ForegroundColor Red
-    exit 1
-}
-
-# Verificar si el ejecutable de la API existe
-if (-not (Test-Path -Path $apiExecutable)) {
-    Write-Host "No se encontró el ejecutable de la API. Asegúrate de que la compilación se haya completado correctamente." -ForegroundColor Red
-    exit 1
-}
-
-# Función para abrir una URL en el navegador predeterminado
-function Start-Browser {
-    param([string]$url)
-    try {
-        Start-Process $url
-    }
-    catch {
-        Write-Host "No se pudo abrir la URL en el navegador. Por favor, abre manualmente: $url" -ForegroundColor Yellow
+# Cerrar procesos de Java (Firebase Emulators)
+$javaCount = 0
+$javaProcesses = Get-Process -Name "java" -ErrorAction SilentlyContinue
+if ($javaProcesses) {
+    Write-Host "  [!] Cerrando emuladores de Firebase..." -ForegroundColor Yellow
+    Write-Host "     NOTA: Si tenias datos sin guardar, se perderan" -ForegroundColor Red
+    Write-Host "     Para evitar esto, cierra siempre con Ctrl+C" -ForegroundColor Yellow
+    foreach ($proc in $javaProcesses) {
+        Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+        $javaCount++
     }
 }
 
-# Mostrar banner
-Write-Host ""
-Write-Host "  _      ___  _   _  ____  _   _  _   _ " -ForegroundColor Cyan
-Write-Host " | |    |_ _|| \ | ||  _ \| \ | || \ | |" -ForegroundColor Cyan
-Write-Host " | |     | | |  \| || |_) |  \| ||  \| |" -ForegroundColor Cyan
-Write-Host " | |___  | | | |\  ||  __/| |\  || |\  |" -ForegroundColor Cyan
-Write-Host " |_____||___||_| \_||_|   |_| \_||_| \_|" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "  Sistema de Seguridad para Servidores Gubernamentales" -ForegroundColor White
-Write-Host "  ===========================================" -ForegroundColor Gray
-Write-Host "  Entorno: $Environment" -ForegroundColor Yellow
-Write-Host "  API: $apiUrl" -ForegroundColor Green
-Write-Host "  Frontend: $frontendUrl" -ForegroundColor Green
-Write-Host ""
+# Cerrar procesos de Node
+$nodeCount = 0
+Get-Process -Name "node" -ErrorAction SilentlyContinue | ForEach-Object {
+    Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+    $nodeCount++
+}
 
-# Iniciar la API
-Write-Host "Iniciando API..." -ForegroundColor Cyan
-$apiProcess = Start-Process -FilePath $apiExecutable -ArgumentList "--env $Environment" -PassThru -NoNewWindow
+if ($javaCount -gt 0 -or $nodeCount -gt 0) {
+    Write-Host "  [OK] Cerrados: $nodeCount procesos Node, $javaCount procesos Java" -ForegroundColor Green
+    Write-Host "  [*] Esperando que los puertos se liberen..." -ForegroundColor Cyan
+    Start-Sleep -Seconds 4
+} else {
+    Write-Host "  [OK] No hay procesos previos que limpiar" -ForegroundColor Green
+}
 
-# Esperar a que la API esté lista
-Write-Host "Esperando a que la API esté lista..." -ForegroundColor Cyan
-$apiReady = $false
-$attempts = 0
-$maxAttempts = 10
+# Verificar que los puertos esten libres
+Write-Host ""
+Write-Host "[*] Verificando puertos..." -ForegroundColor Cyan
 
-while (-not $apiReady -and $attempts -lt $maxAttempts) {
-    try {
-        $response = Invoke-WebRequest -Uri "$apiUrl/health" -UseBasicParsing -ErrorAction SilentlyContinue
-        if ($response.StatusCode -eq 200) {
-            $apiReady = $true
-            Write-Host "API lista!" -ForegroundColor Green
+$portsToCheck = @(3000, 4000, 5001, 8082, 9099)
+$allClear = $true
+
+foreach ($port in $portsToCheck) {
+    $connection = netstat -ano | Select-String ":$port.*LISTENING"
+    if ($connection) {
+        Write-Host "  [!] Puerto $port todavia en uso" -ForegroundColor Yellow
+        $allClear = $false
+        
+        # Intentar cerrar el proceso en ese puerto
+        $line = $connection[0].ToString().Trim()
+        $parts = $line -split '\s+'
+        if ($parts.Count -ge 5) {
+            $pid = $parts[-1]
+            if ($pid -match '^\d+$') {
+                Write-Host "     Cerrando proceso (PID: $pid)..." -ForegroundColor Yellow
+                Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+                Start-Sleep -Seconds 1
+            }
         }
-    }
-    catch {
-        $attempts++
-        Start-Sleep -Seconds 1
-        Write-Host "." -NoNewline -ForegroundColor DarkGray
+    } else {
+        Write-Host "  [OK] Puerto $port libre" -ForegroundColor Green
     }
 }
 
-if (-not $apiReady) {
-    Write-Host "No se pudo conectar a la API después de $maxAttempts intentos." -ForegroundColor Red
-    Stop-Process -Id $apiProcess.Id -Force -ErrorAction SilentlyContinue
-    exit 1
-}
-
-# Iniciar el frontend en modo desarrollo
-if ($Environment -eq 'Development') {
-    Write-Host "Iniciando frontend en modo desarrollo..." -ForegroundColor Cyan
-    $frontendProcess = Start-Process -FilePath "npm" -ArgumentList "start" -WorkingDirectory ".\frontend" -PassThru -NoNewWindow
-    
-    # Esperar un momento para que el servidor de desarrollo se inicie
-    Start-Sleep -Seconds 5
-    
-    # Abrir el navegador con la aplicación
-    Start-Browser -url $frontendUrl
-}
-else {
-    # En producción, servir los archivos estáticos
-    Write-Host "Sirviendo archivos estáticos..." -ForegroundColor Cyan
-    $frontendProcess = Start-Process -FilePath "npx" -ArgumentList "http-server .\dist\www -p 3000 -c-1" -PassThru -NoNewWindow
-    
-    # Abrir el navegador con la aplicación
-    Start-Browser -url $frontendUrl
-}
-
-# Mostrar mensaje de ayuda
-Write-Host ""
-Write-Host "=== Controles ===" -ForegroundColor Cyan
-Write-Host "Presiona Ctrl+C para detener los servicios" -ForegroundColor Yellow
-Write-Host ""
-
-# Esperar a que el usuario presione Ctrl+C
-try {
-    # Mantener el script en ejecución
-    while ($true) {
-        Start-Sleep -Seconds 1
-    }
-}
-finally {
-    # Limpiar al salir
+if (-not $allClear) {
     Write-Host ""
-    Write-Host "Deteniendo servicios..." -ForegroundColor Cyan
-    
-    # Detener procesos
-    if ($apiProcess -and -not $apiProcess.HasExited) {
-        Stop-Process -Id $apiProcess.Id -Force -ErrorAction SilentlyContinue
-    }
-    
-    if ($frontendProcess -and -not $frontendProcess.HasExited) {
-        Stop-Process -Id $frontendProcess.Id -Force -ErrorAction SilentlyContinue
-    }
-    
-    # Detener cualquier proceso de Node.js que haya quedado
-    Get-Process -Name "node" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-    
-    Write-Host "Servicios detenidos." -ForegroundColor Green
+    Write-Host "  [*] Esperando a que los puertos se liberen completamente..." -ForegroundColor Cyan
+    Start-Sleep -Seconds 2
 }
+
+# PASO 2: Iniciar el sistema
+Write-Host ""
+Write-Host "========================================" -ForegroundColor Green
+Write-Host "      INICIANDO SERVICIOS...           " -ForegroundColor Green
+Write-Host "========================================" -ForegroundColor Green
+Write-Host ""
+
+# Iniciar el script de Node
+node start-dev.js

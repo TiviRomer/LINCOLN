@@ -146,3 +146,15 @@ charts/
 
 # Archivos de configuración de Vault
 .vault/
+
+# Firebase Emulators - Datos locales de desarrollo
+emulator-data/auth_export/
+emulator-data/firestore_export/
+emulator-data/*.json
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+firebase-export-*/
+
+# Mantener el README de emulator-data pero no los datos
+!emulator-data/README.md
