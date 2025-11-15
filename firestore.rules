@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Función auxiliar para verificar roles
+    function isAdmin() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
+             request.auth.token.email_verified;
+    }
+    
+    function isUserInDepartment(department) {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.department == department;
+    }
+    
+    // Validar estructura de datos
+    function isValidUserData() {
+      return request.resource.data.keys().hasAll(['email', 'role', 'isActive']) &&
+             request.resource.data.email is string &&
+             request.resource.data.role is string &&
+             request.resource.data.isActive is bool;
+    }
+    
+    // Validar estructura de alertas
+    function isValidAlertData() {
+      return request.resource.data.keys().hasAll(['title', 'description', 'severity', 'status']) &&
+             request.resource.data.title is string &&
+             request.resource.data.description is string &&
+             request.resource.data.severity in ['low', 'medium', 'high', 'critical'] &&
+             request.resource.data.status in ['open', 'acknowledged', 'in_progress', 'resolved', 'closed'];
+    }
+
+    // Reglas para usuarios
+    match /users/{userId} {
+      // Solo usuarios autenticados pueden leer perfiles
+      allow read: if request.auth != null && 
+                  (request.auth.uid == userId || isAdmin() || 
+                   resource.data.department == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.department);
+                  
+      // Creación con validación de datos y seguridad
+      allow create: if request.auth != null &&
+                    isValidUserData() &&
+                    (request.resource.data.role != 'admin' || isAdmin()) &&
+                    request.resource.data.email == request.auth.token.email;
+                    
+      // Actualización con validación de datos
+      allow update: if request.auth.uid == userId || isAdmin() {
+        // Solo administradores pueden cambiar roles
+        if (request.resource.data.role != resource.data.role) {
+          return isAdmin();
+        }
+        return true;
+      }
+      
+      // Solo administradores pueden eliminar usuarios
+      allow delete: if isAdmin();
+
+    // Reglas para servidores
+    match /servers/{serverId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin() || isUserInDepartment('TI');
+    }
+
+    // Reglas para alertas
+    match /alerts/{alertId} {
+      // Lectura permitida para usuarios autenticados
+      allow read: if request.auth != null && 
+                  (isAdmin() || 
+                   resource.data.assignedTo == request.auth.uid ||
+                   isUserInDepartment(resource.data.department));
+                   
+      // Creación con validación de datos
+      allow create: if request.auth != null && 
+                    isValidAlertData() &&
+                    (isAdmin() || 
+                     isUserInDepartment('Seguridad') || 
+                     isUserInDepartment('TI'));
+                     
+      // Actualización con validación de estado
+      allow update: if isAdmin() || 
+                    (request.auth.uid == resource.data.assignedTo && 
+                     request.resource.data.status in ['acknowledged', 'in_progress']) ||
+                    (isUserInDepartment('Seguridad') && 
+                     request.resource.data.status in ['in_progress', 'resolved', 'closed']);
+    }
+
+    // Registros de auditoría
+    match /audit_logs/{logId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+    }
+
+    // Políticas de seguridad
+    match /security_policies/{policyId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+  }
+}
