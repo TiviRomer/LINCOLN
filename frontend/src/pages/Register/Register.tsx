@@ -1,8 +1,10 @@
-import React, { useState, FormEvent } from 'react';
+import React, { useState, FormEvent, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../../components/Logo/Logo';
 import { validateEmail, validatePassword } from '../../utils/validation';
 import './Register.scss';
+
+type PasswordStrength = 'weak' | 'medium' | 'strong' | '';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -22,6 +24,26 @@ const Register: React.FC = () => {
     general: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Calculate password strength
+  const passwordStrength = useMemo((): PasswordStrength => {
+    if (!formData.password) return '';
+    
+    const hasLength = formData.password.length >= 8;
+    const hasUpper = /[A-Z]/.test(formData.password);
+    const hasLower = /[a-z]/.test(formData.password);
+    const hasNumber = /[0-9]/.test(formData.password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(formData.password);
+    
+    const criteriaMet = [hasLength, hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length;
+    
+    if (criteriaMet <= 2) return 'weak';
+    if (criteriaMet <= 4) return 'medium';
+    return 'strong';
+  }, [formData.password]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -36,6 +58,10 @@ const Register: React.FC = () => {
         [name]: '',
         general: '',
       }));
+    }
+    // Clear success message when user makes changes
+    if (successMessage) {
+      setSuccessMessage('');
     }
   };
 
@@ -108,9 +134,23 @@ const Register: React.FC = () => {
       return;
     }
 
-    // Simulate API call
+    // API call
     try {
       // TODO: Replace with actual API call
+      // Example API call structure:
+      // const response = await fetch('/api/auth/register', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({
+      //     name: formData.name,
+      //     email: formData.email,
+      //     password: formData.password,
+      //   }),
+      // });
+      // const data = await response.json();
+      // if (!response.ok) throw new Error(data.message || 'Error al registrar');
+      
+      // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1500));
       
       console.log('Registration attempt:', {
@@ -118,12 +158,23 @@ const Register: React.FC = () => {
         email: formData.email,
       });
       
-      // Navigate to login or dashboard
-      navigate('/login');
+      // Show success message
+      setSuccessMessage('¡Cuenta creada exitosamente! Redirigiendo...');
+      
+      // Navigate to login after a short delay
+      setTimeout(() => {
+        navigate('/login', { 
+          state: { 
+            message: 'Cuenta creada exitosamente. Por favor, inicia sesión.' 
+          } 
+        });
+      }, 1500);
     } catch (error) {
       setErrors({
         ...newErrors,
-        general: 'Error al registrar. Por favor, intenta nuevamente.',
+        general: error instanceof Error 
+          ? error.message 
+          : 'Error al registrar. Por favor, intenta nuevamente.',
       });
     } finally {
       setIsLoading(false);
@@ -146,6 +197,10 @@ const Register: React.FC = () => {
 
           {errors.general && (
             <div className="error-message">{errors.general}</div>
+          )}
+          
+          {successMessage && (
+            <div className="success-message">{successMessage}</div>
           )}
 
           <form onSubmit={handleSubmit} className="auth-form">
@@ -191,16 +246,47 @@ const Register: React.FC = () => {
               <label htmlFor="password" className="form-label">
                 Contraseña
               </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className={`form-input ${errors.password ? 'error' : ''}`}
-                placeholder="••••••••"
-                autoComplete="new-password"
-              />
+              <div className="password-input-wrapper">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={`form-input ${errors.password ? 'error' : ''} ${passwordStrength ? `strength-${passwordStrength}` : ''}`}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
+              {formData.password && (
+                <div className="password-strength">
+                  <div className="strength-label">
+                    Fortaleza: <span className={`strength-text strength-${passwordStrength}`}>
+                      {passwordStrength === 'weak' && 'Débil'}
+                      {passwordStrength === 'medium' && 'Media'}
+                      {passwordStrength === 'strong' && 'Fuerte'}
+                    </span>
+                  </div>
+                  <div className="strength-bar">
+                    <div 
+                      className={`strength-fill strength-${passwordStrength}`}
+                      style={{ 
+                        width: passwordStrength === 'weak' ? '33%' : 
+                               passwordStrength === 'medium' ? '66%' : 
+                               passwordStrength === 'strong' ? '100%' : '0%' 
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
               {errors.password && (
                 <span className="error-text">{errors.password}</span>
               )}
@@ -213,16 +299,29 @@ const Register: React.FC = () => {
               <label htmlFor="confirmPassword" className="form-label">
                 Confirmar Contraseña
               </label>
-              <input
-                type="password"
-                id="confirmPassword"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className={`form-input ${errors.confirmPassword ? 'error' : ''}`}
-                placeholder="••••••••"
-                autoComplete="new-password"
-              />
+              <div className="password-input-wrapper">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className={`form-input ${errors.confirmPassword ? 'error' : ''} ${formData.confirmPassword && formData.password === formData.confirmPassword ? 'match' : ''}`}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
+              {formData.confirmPassword && formData.password === formData.confirmPassword && (
+                <span className="success-text">✓ Las contraseñas coinciden</span>
+              )}
               {errors.confirmPassword && (
                 <span className="error-text">{errors.confirmPassword}</span>
               )}
